@@ -36,3 +36,6 @@ yarn-error.*
 
 expo-env.d.ts
 # @end expo-cli
+
+# Claude Code local settings
+.claude/settings.local.json
