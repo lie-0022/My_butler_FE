@@ -35,16 +35,9 @@ export function Toggle({ on, onChange, testID }: ToggleProps) {
   });
 
   return (
-    <Pressable
-      onPress={() => onChange(!on)}
-      testID={testID}
-      hitSlop={6}
-      style={styles.wrap}
-    >
+    <Pressable onPress={() => onChange(!on)} testID={testID} hitSlop={6} style={styles.wrap}>
       <Animated.View style={[styles.track, { backgroundColor: trackBg }]}>
-        <Animated.View
-          style={[styles.thumb, shadows.sm, { transform: [{ translateX }] }]}
-        />
+        <Animated.View style={[styles.thumb, shadows.sm, { transform: [{ translateX }] }]} />
       </Animated.View>
     </Pressable>
   );

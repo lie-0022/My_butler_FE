@@ -11,7 +11,7 @@ export interface UserProfileResponse {
 export interface UpdateProfileRequest {
   name: string;
   birthDate: string; // "YYYY-MM-DD"
-  gender: string;    // "MALE" | "FEMALE" | "OTHER"
+  gender: string; // "MALE" | "FEMALE" | "OTHER"
 }
 
 export interface UserPreferenceResponse {

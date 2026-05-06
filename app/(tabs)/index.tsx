@@ -74,7 +74,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   inner: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 32 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
   greeting: { fontSize: 14, color: Colors.textSecondary },
   username: { fontSize: 22, fontWeight: 'bold', color: Colors.text, marginTop: 2 },
   butlerCard: {

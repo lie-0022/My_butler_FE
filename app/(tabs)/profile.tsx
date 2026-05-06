@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { Colors } from '@/constants/colors';
 
@@ -34,9 +27,7 @@ export default function ProfileScreen() {
       {/* 프로필 헤더 */}
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.name?.[0] ?? user?.username?.[0] ?? '?'}
-          </Text>
+          <Text style={styles.avatarText}>{user?.name?.[0] ?? user?.username?.[0] ?? '?'}</Text>
         </View>
         <Text style={styles.name}>{user?.name ?? '-'}</Text>
         <Text style={styles.username}>@{user?.username ?? '-'}</Text>
@@ -75,9 +66,12 @@ const styles = StyleSheet.create({
   inner: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 32 },
   profileHeader: { alignItems: 'center', marginBottom: 36 },
   avatar: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
   avatarText: { fontSize: 32, color: Colors.white, fontWeight: 'bold' },

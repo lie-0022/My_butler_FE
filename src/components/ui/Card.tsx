@@ -12,12 +12,7 @@ export interface CardProps {
 }
 
 export function Card({ children, dark = false, onPress, style, testID }: CardProps) {
-  const baseStyle = [
-    styles.card,
-    shadows.md,
-    dark ? styles.cardDark : styles.cardLight,
-    style,
-  ];
+  const baseStyle = [styles.card, shadows.md, dark ? styles.cardDark : styles.cardLight, style];
 
   if (onPress) {
     return (

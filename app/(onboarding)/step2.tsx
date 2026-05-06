@@ -60,12 +60,7 @@ export default function OnboardingStep2Screen() {
         <Text style={styles.title}>기본 정보 입력</Text>
         <Text style={styles.subtitle}>버틀러가 나를 더 잘 알 수 있도록 알려주세요</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="이름"
-          value={name}
-          onChangeText={setName}
-        />
+        <TextInput style={styles.input} placeholder="이름" value={name} onChangeText={setName} />
 
         <TextInput
           style={styles.input}
@@ -109,11 +104,20 @@ const styles = StyleSheet.create({
   inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
   progressRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginBottom: 32 },
   progressDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.border,
   },
   progressDotDone: { backgroundColor: Colors.primaryDark },
   progressDotActive: { backgroundColor: Colors.primary },
-  title: { fontSize: 24, fontWeight: 'bold', color: Colors.text, marginBottom: 8, textAlign: 'center' },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   subtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 32 },
   label: { fontSize: 14, color: Colors.textSecondary, marginBottom: 8, marginTop: 4 },
   input: {

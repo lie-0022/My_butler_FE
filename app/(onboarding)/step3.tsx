@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { userApi } from '@/api/user';
 import { Colors } from '@/constants/colors';
@@ -96,7 +89,13 @@ const styles = StyleSheet.create({
   progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border },
   progressDotDone: { backgroundColor: Colors.primaryDark },
   progressDotActive: { backgroundColor: Colors.primary },
-  title: { fontSize: 24, fontWeight: 'bold', color: Colors.text, marginBottom: 8, textAlign: 'center' },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   subtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 32 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 40 },
   chip: {

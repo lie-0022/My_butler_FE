@@ -37,9 +37,7 @@ export const userApi = {
   },
 
   /** 닉네임 변경 */
-  updateUsername: async (
-    data: UpdateUsernameRequest,
-  ): Promise<ApiResponse<UsernameResponse>> => {
+  updateUsername: async (data: UpdateUsernameRequest): Promise<ApiResponse<UsernameResponse>> => {
     const res = await apiClient.patch('/users/me/username', data);
     return res.data;
   },

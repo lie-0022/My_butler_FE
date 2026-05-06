@@ -54,17 +54,17 @@
 
 ## 4. 폴더 구조
 
-| 영역 | 경로 | 비고 |
-|---|---|---|
-| 화면 (라우트) | `app/` | Expo Router 파일 기반 |
-| 공용 UI 컴포넌트 | `src/components/ui/` | Button, Input, Chip, Card 등 |
-| 일러스트 SVG | `src/components/illustrations/` | Bottle, CocktailGlass, IngChip |
-| 비즈니스 로직 훅 | `src/hooks/` | useXxx.ts |
-| API 클라이언트 | `src/api/` | client.ts + 도메인별 모듈 |
-| Zustand 스토어 | `src/store/` | 도메인별 분리 |
-| 타입 | `src/types/` | 도메인별 분리 |
-| 디자인 토큰 | `src/constants/` | colors / spacing / typography / radius / shadows |
-| 디자인 인계 자료 | `design/` | **참조 전용. 코드 import 금지** |
+| 영역             | 경로                            | 비고                                             |
+| ---------------- | ------------------------------- | ------------------------------------------------ |
+| 화면 (라우트)    | `app/`                          | Expo Router 파일 기반                            |
+| 공용 UI 컴포넌트 | `src/components/ui/`            | Button, Input, Chip, Card 등                     |
+| 일러스트 SVG     | `src/components/illustrations/` | Bottle, CocktailGlass, IngChip                   |
+| 비즈니스 로직 훅 | `src/hooks/`                    | useXxx.ts                                        |
+| API 클라이언트   | `src/api/`                      | client.ts + 도메인별 모듈                        |
+| Zustand 스토어   | `src/store/`                    | 도메인별 분리                                    |
+| 타입             | `src/types/`                    | 도메인별 분리                                    |
+| 디자인 토큰      | `src/constants/`                | colors / spacing / typography / radius / shadows |
+| 디자인 인계 자료 | `design/`                       | **참조 전용. 코드 import 금지**                  |
 
 ---
 
@@ -72,20 +72,22 @@
 
 `design/tokens.css`의 CSS 변수를 RN 토큰 파일로 분리하는 매핑표 (작업 6에서 실제 파일 생성 예정):
 
-| RN 파일 | 포함할 토큰 | 비고 |
-|---|---|---|
-| `src/constants/colors.ts` | `--ink-*`, `--paper-*`, `--amber-*`, `--brass*`, `--ok-*`, `--warn-*`, `--danger-*` | hex 값 그대로 이식 |
-| `src/constants/spacing.ts` | `--sp-1` ~ `--sp-8` (4-step grid) | px 값을 `number`로 |
-| `src/constants/typography.ts` | `--fs-xxs` ~ `--fs-display`, font family 3종, line-height, weight | `fontFamily: 'Fraunces_600SemiBold'` 같이 expo-font 키로 |
-| `src/constants/radius.ts` | `--r-xs` ~ `--r-pill` | `number`로. `pill = 9999` |
-| `src/constants/shadows.ts` | `--sh-sm`, `--sh-md`, `--sh-lg` | RN `shadowColor / Offset / Opacity / Radius` + `elevation`으로 변환. **`--sh-inset`는 RN 미지원이므로 제외** |
+| RN 파일                       | 포함할 토큰                                                                         | 비고                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/constants/colors.ts`     | `--ink-*`, `--paper-*`, `--amber-*`, `--brass*`, `--ok-*`, `--warn-*`, `--danger-*` | hex 값 그대로 이식                                                                                           |
+| `src/constants/spacing.ts`    | `--sp-1` ~ `--sp-8` (4-step grid)                                                   | px 값을 `number`로                                                                                           |
+| `src/constants/typography.ts` | `--fs-xxs` ~ `--fs-display`, font family 3종, line-height, weight                   | `fontFamily: 'Fraunces_600SemiBold'` 같이 expo-font 키로                                                     |
+| `src/constants/radius.ts`     | `--r-xs` ~ `--r-pill`                                                               | `number`로. `pill = 9999`                                                                                    |
+| `src/constants/shadows.ts`    | `--sh-sm`, `--sh-md`, `--sh-lg`                                                     | RN `shadowColor / Offset / Opacity / Radius` + `elevation`으로 변환. **`--sh-inset`는 RN 미지원이므로 제외** |
 
 ### 폰트 (expo-font 등록 필요)
+
 - **Fraunces** (serif) — 헤드라인, eyebrow numerals
 - **Inter** (sans) — 본문 전체
 - **JetBrains Mono** (mono) — 이메일·숫자·코드성 텍스트
 
 ### 권장 정수 폰트 스케일
+
 ```
 fs.xxs = 10  // mono caption
 fs.xs  = 11
@@ -104,26 +106,26 @@ fs.display = 48
 
 `design/design-source/app.jsx` 상단 주석의 매핑표 그대로:
 
-| 디자인 (컴포넌트 ID) | RN 라우트 |
-|---|---|
-| `login` | `app/(auth)/login.tsx` |
-| `loginEmail` | `app/(auth)/login-email.tsx` (신규) |
-| `forgotPassword` | `app/(auth)/forgot-password.tsx` (기존, 디자인 신규) |
-| `signup1` | `app/(auth)/register.tsx` |
-| `signup2` | `app/(onboarding)/step1.tsx` (신규 — 기존 비어있음) |
-| `signup3` | `app/(onboarding)/step2.tsx` |
-| `welcome` | `app/(onboarding)/step3.tsx` |
-| `bar` | `app/(tabs)/index.tsx` (홈 탭) |
-| `recipe` | `app/(tabs)/recipes.tsx` (신규 탭) |
-| `feed` | `app/(tabs)/feed.tsx` (신규 탭) |
-| (ar) | `app/(tabs)/ar.tsx` (placeholder, "준비 중") |
-| `profile` | `app/(tabs)/profile.tsx` |
-| `barDetail` | `app/bottle/[id].tsx` (스택) |
-| `barAdd` | `app/bottle/new.tsx` (스택) |
-| `barInsight` | `app/bar/insight.tsx` (스택) |
-| `recipeDetail` | `app/recipe/[id].tsx` (스택) |
-| `recipeMissing` | `app/recipe/[id]/missing.tsx` (스택) |
-| `post` | `app/post/[id].tsx` (스택) |
+| 디자인 (컴포넌트 ID) | RN 라우트                                            |
+| -------------------- | ---------------------------------------------------- |
+| `login`              | `app/(auth)/login.tsx`                               |
+| `loginEmail`         | `app/(auth)/login-email.tsx` (신규)                  |
+| `forgotPassword`     | `app/(auth)/forgot-password.tsx` (기존, 디자인 신규) |
+| `signup1`            | `app/(auth)/register.tsx`                            |
+| `signup2`            | `app/(onboarding)/step1.tsx` (신규 — 기존 비어있음)  |
+| `signup3`            | `app/(onboarding)/step2.tsx`                         |
+| `welcome`            | `app/(onboarding)/step3.tsx`                         |
+| `bar`                | `app/(tabs)/index.tsx` (홈 탭)                       |
+| `recipe`             | `app/(tabs)/recipes.tsx` (신규 탭)                   |
+| `feed`               | `app/(tabs)/feed.tsx` (신규 탭)                      |
+| (ar)                 | `app/(tabs)/ar.tsx` (placeholder, "준비 중")         |
+| `profile`            | `app/(tabs)/profile.tsx`                             |
+| `barDetail`          | `app/bottle/[id].tsx` (스택)                         |
+| `barAdd`             | `app/bottle/new.tsx` (스택)                          |
+| `barInsight`         | `app/bar/insight.tsx` (스택)                         |
+| `recipeDetail`       | `app/recipe/[id].tsx` (스택)                         |
+| `recipeMissing`      | `app/recipe/[id]/missing.tsx` (스택)                 |
+| `post`               | `app/post/[id].tsx` (스택)                           |
 
 ---
 
@@ -183,12 +185,13 @@ fs.display = 48
 - **Expo Web 모드는 빠른 디자인 매칭 용도**. 최종 검증 수단이 아님 (네이티브 SVG/제스처/SafeArea 차이가 있음).
 - **SafeArea, 키보드 동작, 스크롤 관성, 햅틱은 폰에서만 검증**.
 - 자동 테스트 미설정 상태 → 회귀 검증은 수동.
+- **커밋 전 `npm run lint && npm run format:check` 실행 권장** (오토픽스가 필요하면 `npm run lint:fix && npm run format`).
 
 ---
 
 ## 12. 작업 시작 전 체크
 
-- 새 기능 시작 시 **관련 파일을 먼저 Read**로 읽어 현재 상태를 확인 (특히 라우트 _layout.tsx, 인접 화면, 관련 store).
+- 새 기능 시작 시 **관련 파일을 먼저 Read**로 읽어 현재 상태를 확인 (특히 라우트 \_layout.tsx, 인접 화면, 관련 store).
 - 세션이 길어지면 (45분 이상 또는 큰 변환 작업 후) `/compact` 또는 `/clear`로 컨텍스트 정리.
 - **한 번에 한 화면씩 작업**. 17개 화면을 일괄 변환하지 말 것 — 디자인 토큰 매핑·일러스트 변환·레이아웃 보정에서 발생하는 결정 사항이 화면마다 누적되므로, 한 화면 완성 후 패턴을 고정하고 다음으로.
 
@@ -196,16 +199,16 @@ fs.display = 48
 
 ## 13. 알려진 이슈 / TODO
 
-| 항목 | 위치 / 메모 |
-|---|---|
-| ✅ 동적 `require('react-native')` | `app/(tabs)/_layout.tsx` — 작업 9에서 정적 `import`로 교체 |
-| ✅ JSON trailing comma | `app.json` — 작업 7에서 자동 제거됨 |
-| `forgot-password` 디자인 신규 | 현재 RN 코드는 골격만. 디자인 인계본대로 2-step UI로 재작성 필요 |
-| ✅ `(onboarding)/step1.tsx` 신규 생성 | 작업 9에서 placeholder 생성. 본 구현은 작업 12 |
-| ESLint 의존성 미설치 | `package.json:10`에 `"lint": "eslint ."`만 있고 `eslint`/`eslint-config-expo` 미설치 → 실행 불가 |
-| 인증 가드 부재 | `(tabs)`, `(onboarding)` 그룹에 라우트 보호 없음. `app/index.tsx` 단발 리다이렉트에만 의존 |
-| ✅ `(tabs)/index.tsx` useEffect deps 누락 | 작업 9에서 `setUser` 추가 |
-| ✅ `parseApiError(err)` 헬퍼 부재 | 작업 9에서 `src/utils/parseApiError.ts` 생성 + 5개 화면 마이그레이션 완료 |
+| 항목                                      | 위치 / 메모                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| ✅ 동적 `require('react-native')`         | `app/(tabs)/_layout.tsx` — 작업 9에서 정적 `import`로 교체                                 |
+| ✅ JSON trailing comma                    | `app.json` — 작업 7에서 자동 제거됨                                                        |
+| `forgot-password` 디자인 신규             | 현재 RN 코드는 골격만. 디자인 인계본대로 2-step UI로 재작성 필요                           |
+| ✅ `(onboarding)/step1.tsx` 신규 생성     | 작업 9에서 placeholder 생성. 본 구현은 작업 12                                             |
+| ✅ ESLint 의존성 미설치                   | 작업 10에서 eslint 9 + eslint-config-expo + @typescript-eslint + Prettier 셋업 완료        |
+| 인증 가드 부재                            | `(tabs)`, `(onboarding)` 그룹에 라우트 보호 없음. `app/index.tsx` 단발 리다이렉트에만 의존 |
+| ✅ `(tabs)/index.tsx` useEffect deps 누락 | 작업 9에서 `setUser` 추가                                                                  |
+| ✅ `parseApiError(err)` 헬퍼 부재         | 작업 9에서 `src/utils/parseApiError.ts` 생성 + 5개 화면 마이그레이션 완료                  |
 
 ---
 
@@ -231,4 +234,4 @@ fs.display = 48
 
 ---
 
-*이 파일은 작업 진행에 따라 갱신된다. 결정이 바뀌면 해당 섹션을 즉시 수정할 것.*
+_이 파일은 작업 진행에 따라 갱신된다. 결정이 바뀌면 해당 섹션을 즉시 수정할 것._

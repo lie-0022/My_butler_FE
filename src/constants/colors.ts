@@ -16,7 +16,7 @@ export const colors = {
     600: '#3d2f27', // hairline on dark
   },
   paper: {
-    50: '#faf6ef',  // app background (warm cream)
+    50: '#faf6ef', // app background (warm cream)
     100: '#f4ece0', // card on paper
     200: '#ebe0cf', // subtle surface
     300: '#d9cab3', // divider
@@ -36,8 +36,8 @@ export const colors = {
     ink: '#8b6a2e',
   },
   semantic: {
-    ok: '#5a7a3e',     // fresh olive
-    warn: '#c9751f',   // warm warning
+    ok: '#5a7a3e', // fresh olive
+    warn: '#c9751f', // warm warning
     danger: '#a43220', // oxidized red
   },
   semanticBg: {

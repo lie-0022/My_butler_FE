@@ -55,7 +55,9 @@ export default function ForgotPasswordScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.desc}>가입한 이메일 주소를 입력하면 재설정 링크를 보내드립니다.</Text>
+            <Text style={styles.desc}>
+              가입한 이메일 주소를 입력하면 재설정 링크를 보내드립니다.
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="이메일"
@@ -84,8 +86,20 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-  title: { fontSize: 24, fontWeight: 'bold', color: Colors.text, marginBottom: 16, textAlign: 'center' },
-  desc: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  desc: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
   input: {
     borderWidth: 1,
     borderColor: Colors.border,
