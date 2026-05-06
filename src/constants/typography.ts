@@ -13,7 +13,20 @@
  */
 
 export const fontFamily = {
+  /**
+   * 기본 serif. 한글-영문 모두 커버 (Noto Serif KR).
+   * 헤딩·슬로건·라벨 등 에디토리얼 텍스트 전반에 사용.
+   */
   serif: {
+    regular: 'NotoSerifKR_400Regular',
+    semibold: 'NotoSerifKR_600SemiBold',
+    bold: 'NotoSerifKR_700Bold',
+  },
+  /**
+   * 영문 전용 serif (Fraunces). 영문 강조나 숫자 헤로(예: eyebrow numerals)에만 사용.
+   * 한국어 텍스트에는 적용 금지 — 시스템 폰트로 폴백되어 디자인 의도 깨짐.
+   */
+  serifLatin: {
     regular: 'Fraunces_400Regular',
     semibold: 'Fraunces_600SemiBold',
   },

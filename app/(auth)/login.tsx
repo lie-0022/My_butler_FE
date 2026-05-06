@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { CTA } from '@/components/ui';
-import { Bottle } from '@/components/illustrations';
+import { BottleGroup } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 
 export default function LoginFrontDoorScreen() {
@@ -17,9 +17,16 @@ export default function LoginFrontDoorScreen() {
     >
       <StatusBar style="light" />
 
-      {/* 우상단 히어로 병 (작업 16-1 amber 단일 tone — 16-2에서 3병 stack 확장 예정) */}
+      {/* 우상단 히어로 병 그룹 (3 tone stack — 작업 16-2) */}
       <View style={styles.bottleWrap} pointerEvents="none">
-        <Bottle size="lg" tone="amber" label="RESERVE" />
+        <BottleGroup
+          containerSize="lg"
+          bottles={[
+            { tone: 'green', label: 'AMARO', size: 'sm' },
+            { tone: 'clear', label: 'DRY GIN', size: 'md' },
+            { tone: 'amber', label: 'RESERVE', size: 'lg' },
+          ]}
+        />
       </View>
 
       <View

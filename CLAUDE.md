@@ -83,9 +83,10 @@
 
 ### 폰트 (expo-font 등록 필요)
 
-- **Fraunces** (serif) — 헤드라인, eyebrow numerals
-- **Inter** (sans) — 본문 전체
-- **JetBrains Mono** (mono) — 이메일·숫자·코드성 텍스트
+- **Noto Serif KR** (`fontFamily.serif`) — **기본 헤딩/슬로건 (한글-영문 모두 커버)**. 디자인의 에디토리얼 세리프 역할.
+- **Fraunces** (`fontFamily.serifLatin`) — 영문 전용. 한국어 텍스트에 쓰면 시스템 폰트로 폴백되어 의도 깨짐. eyebrow numerals나 영문 강조에만 사용.
+- **Inter** (`fontFamily.sans`) — 본문 전체
+- **JetBrains Mono** (`fontFamily.mono`) — 이메일·숫자·코드성 텍스트
 
 ### 권장 정수 폰트 스케일
 

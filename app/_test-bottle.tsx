@@ -1,12 +1,12 @@
 /**
- * TEMP: 작업 16-1 검증용 테스트 화면.
- * 작업 16-2 종료 시 삭제 예정.
+ * TEMP: Bottle / BottleGroup 검증용 테스트 화면.
+ * 작업 16-2 완료 후 삭제 예정 (이 파일 + _debug.tsx의 TEST 그룹 항목).
  * URL: http://localhost:8081/_test-bottle
  */
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Bottle } from '@/components/illustrations';
+import { Bottle, BottleGroup } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, spacing } from '@/constants';
 
 export default function TestBottleScreen() {
@@ -18,26 +18,44 @@ export default function TestBottleScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
       >
-        <Text style={styles.title}>Bottle 테스트 — amber tone</Text>
+        <Text style={styles.title}>Bottle 테스트</Text>
 
-        <Section label="size: sm (60×120)">
+        <Section label="tone × md (amber / clear / red / green)">
           <Row>
-            <Bottle size="sm" />
-            <Bottle size="sm" label="LAGAVULIN" />
+            <Bottle size="md" tone="amber" label="AMBER" />
+            <Bottle size="md" tone="clear" label="CLEAR" />
+            <Bottle size="md" tone="red" label="RED" />
+            <Bottle size="md" tone="green" label="GREEN" />
           </Row>
         </Section>
 
-        <Section label="size: md (90×180)">
+        <Section label="level (amber, md): 1.0 / 0.6 / 0.3 / 0">
           <Row>
-            <Bottle size="md" />
-            <Bottle size="md" label="BULLEIT" />
+            <Bottle size="md" tone="amber" level={1} />
+            <Bottle size="md" tone="amber" level={0.6} />
+            <Bottle size="md" tone="amber" level={0.3} />
+            <Bottle size="md" tone="amber" level={0} />
           </Row>
         </Section>
 
-        <Section label="size: lg (160×320)">
+        <Section label="size sm/md/lg (amber)">
           <Row>
-            <Bottle size="lg" label="LAGAVULIN" />
+            <Bottle size="sm" tone="amber" label="LAGAVULIN" />
+            <Bottle size="md" tone="amber" label="BULLEIT" />
           </Row>
+        </Section>
+
+        <Section label="BottleGroup (lg) — login Front Door 구성">
+          <View style={styles.groupWrap}>
+            <BottleGroup
+              containerSize="lg"
+              bottles={[
+                { tone: 'green', label: 'AMARO', size: 'sm' },
+                { tone: 'clear', label: 'DRY GIN', size: 'md' },
+                { tone: 'amber', label: 'RESERVE', size: 'lg' },
+              ]}
+            />
+          </View>
         </Section>
       </ScrollView>
     </View>
@@ -86,6 +104,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing[5],
+    gap: spacing[4],
+    flexWrap: 'wrap',
+  },
+  groupWrap: {
+    height: 340,
+    backgroundColor: colors.ink[900],
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
