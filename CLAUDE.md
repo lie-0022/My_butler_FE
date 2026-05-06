@@ -49,6 +49,7 @@
 - **긴 리스트에 `ScrollView` 금지** → `FlatList` (또는 필요 시 `SectionList`).
 - **`TouchableOpacity` 금지** → `Pressable` (시각 피드백은 `({ pressed }) => ...` 패턴).
 - **`localStorage` / `sessionStorage` 사용 금지** → Zustand `persist` 미들웨어 또는 `expo-secure-store`.
+- **`SysBar` 컴포넌트 사용 금지** (디자인 데모용, RN에서는 OS 상태바와 중복됨). 상태바 스타일링은 `expo-status-bar`의 `<StatusBar style="dark|light" />`로 처리.
 
 ---
 
@@ -221,6 +222,7 @@ fs.display = 48
 | 인증 가드 부재                            | `(tabs)`, `(onboarding)` 그룹에 라우트 보호 없음. `app/index.tsx` 단발 리다이렉트에만 의존 |
 | ✅ `(tabs)/index.tsx` useEffect deps 누락 | 작업 9에서 `setUser` 추가                                                                  |
 | ✅ `parseApiError(err)` 헬퍼 부재         | 작업 9에서 `src/utils/parseApiError.ts` 생성 + 5개 화면 마이그레이션 완료                  |
+| `SysBar` deprecated                       | 모든 화면에서 사용 금지. 작업 14 즈음 `src/components/ui/SysBar.tsx` 일괄 삭제 예정         |
 
 ---
 

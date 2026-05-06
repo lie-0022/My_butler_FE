@@ -7,5 +7,7 @@ export default function Index() {
   if (isAuthenticated) {
     return <Redirect href="/(tabs)" />;
   }
-  return <Redirect href="/(auth)/login" />;
+  // TEMP: 작업 12-1 검증용. 작업 12-2에서 login Front Door 완성 후 원복할 것.
+  // 원복 방법: '/(auth)/login-email' → '/(auth)/login'
+  return <Redirect href="/(auth)/login-email" />;
 }

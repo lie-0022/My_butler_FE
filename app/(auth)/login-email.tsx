@@ -13,10 +13,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
-import { AppBar, BackBtn, CTA, Eyebrow, Input, SysBar } from '@/components/ui';
+import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/constants';
 import { parseApiError } from '@/utils/parseApiError';
 
@@ -58,7 +59,7 @@ export default function LoginEmailScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <SysBar />
+      <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} testID="login-back-button" />}
         title="로그인"

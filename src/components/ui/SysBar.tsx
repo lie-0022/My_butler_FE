@@ -1,3 +1,10 @@
+/**
+ * @deprecated RN 앱에서는 사용 금지.
+ * 이 컴포넌트는 디자인 인계본의 시각적 상태바 데모용으로 작성됐으나,
+ * RN 앱에서는 OS가 자동으로 상태바를 렌더하므로 사용 시 이중 표시됨.
+ * 상태바 스타일링은 expo-status-bar의 <StatusBar style="dark|light" />로 처리.
+ * 향후 작업에서 이 파일은 삭제될 예정.
+ */
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import { colors, fontFamily, fontSize, spacing } from '@/constants';
