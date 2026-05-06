@@ -17,6 +17,11 @@
   - **Zustand** (클라이언트 상태)
   - **Axios** (HTTP, refresh 토큰 인터셉터 구현됨)
   - **expo-secure-store** (토큰 영구 저장)
+  - **react-native-svg + expo-linear-gradient** (Bottle/CocktailGlass 일러스트)
+  - **expo-image** (이미지 최적화)
+  - **react-hook-form + zod + @hookform/resolvers** (폼 처리·검증)
+  - **@react-native-community/datetimepicker** (생년월일 등 날짜 입력)
+  - **@tanstack/react-query** (서버 상태, 작업 18 이후 본격 사용)
 - **타겟 디바이스**: **Galaxy S24 FE (393 × 854 dp)** 기준으로 디자인 검증됨. iOS/Android 양쪽 지원.
 - **디자인 무드**: **Warm Amber, editorial, bar-counter metaphor** (위스키 바 카운터에서 영감)
 - **다크모드**: MVP 미지원 (라이트 고정, `app.json: userInterfaceStyle: "light"`)
