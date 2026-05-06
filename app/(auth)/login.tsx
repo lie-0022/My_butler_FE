@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { Colors } from '@/constants/colors';
+import { parseApiError } from '@/utils/parseApiError';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,11 +33,8 @@ export default function LoginScreen() {
     try {
       await authApi.login({ username, password });
       router.replace('/(tabs)');
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '로그인에 실패했습니다.';
-      Alert.alert('로그인 실패', msg);
+    } catch (error) {
+      Alert.alert('로그인 실패', parseApiError(error).message);
     } finally {
       setLoading(false);
     }

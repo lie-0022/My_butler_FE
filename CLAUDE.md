@@ -198,14 +198,14 @@ fs.display = 48
 
 | 항목 | 위치 / 메모 |
 |---|---|
-| 동적 `require('react-native')` | `app/(tabs)/_layout.tsx:40` — 정적 `import`로 교체 예정 |
-| JSON trailing comma | `app.json:19` — 제거 예정 |
+| ✅ 동적 `require('react-native')` | `app/(tabs)/_layout.tsx` — 작업 9에서 정적 `import`로 교체 |
+| ✅ JSON trailing comma | `app.json` — 작업 7에서 자동 제거됨 |
 | `forgot-password` 디자인 신규 | 현재 RN 코드는 골격만. 디자인 인계본대로 2-step UI로 재작성 필요 |
-| `(onboarding)/step1.tsx` 신규 생성 | 기존 비어있음 — `signup2` 디자인 매핑 |
+| ✅ `(onboarding)/step1.tsx` 신규 생성 | 작업 9에서 placeholder 생성. 본 구현은 작업 12 |
 | ESLint 의존성 미설치 | `package.json:10`에 `"lint": "eslint ."`만 있고 `eslint`/`eslint-config-expo` 미설치 → 실행 불가 |
 | 인증 가드 부재 | `(tabs)`, `(onboarding)` 그룹에 라우트 보호 없음. `app/index.tsx` 단발 리다이렉트에만 의존 |
-| `(tabs)/index.tsx:33` useEffect deps 누락 | `setUser` 미포함 (lint 활성화 시 잡힘) |
-| `parseApiError(err)` 헬퍼 부재 | `error: unknown` 캐스팅 패턴이 6개 화면에 인라인 반복 |
+| ✅ `(tabs)/index.tsx` useEffect deps 누락 | 작업 9에서 `setUser` 추가 |
+| ✅ `parseApiError(err)` 헬퍼 부재 | 작업 9에서 `src/utils/parseApiError.ts` 생성 + 5개 화면 마이그레이션 완료 |
 
 ---
 

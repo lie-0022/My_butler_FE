@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { userApi } from '@/api/user';
 import { Colors } from '@/constants/colors';
+import { parseApiError } from '@/utils/parseApiError';
 
 const CATEGORIES = [
   { label: '🍽️ 음식', value: 'FOOD' },
@@ -42,11 +43,8 @@ export default function OnboardingStep3Screen() {
     try {
       await userApi.savePreferences({ categories: selected });
       router.replace('/(tabs)');
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '저장에 실패했습니다.';
-      Alert.alert('오류', msg);
+    } catch (error) {
+      Alert.alert('오류', parseApiError(error).message);
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { authApi } from '@/api/auth';
 import { Colors } from '@/constants/colors';
+import { parseApiError } from '@/utils/parseApiError';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -28,11 +29,8 @@ export default function ForgotPasswordScreen() {
     try {
       await authApi.requestPasswordReset({ email });
       setSent(true);
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '요청에 실패했습니다.';
-      Alert.alert('오류', msg);
+    } catch (error) {
+      Alert.alert('오류', parseApiError(error).message);
     } finally {
       setLoading(false);
     }

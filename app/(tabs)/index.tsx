@@ -30,7 +30,7 @@ export default function HomeScreen() {
       }
     };
     fetchProfile();
-  }, []);
+  }, [setUser]);
 
   if (loading) {
     return (

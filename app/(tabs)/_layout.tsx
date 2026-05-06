@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 import { Colors } from '@/constants/colors';
 
 export default function TabsLayout() {
@@ -19,10 +20,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: '홈',
-          tabBarIcon: ({ color }) => (
-            // 아이콘 라이브러리 설치 후 교체 권장 (예: lucide-react-native)
-            <TabIcon label="🏠" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon label="🏠" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -37,6 +35,5 @@ export default function TabsLayout() {
 }
 
 function TabIcon({ label, color }: { label: string; color: string }) {
-  const { Text } = require('react-native');
-  return <Text style={{ fontSize: 20 }}>{label}</Text>;
+  return <Text style={{ fontSize: 20, color }}>{label}</Text>;
 }

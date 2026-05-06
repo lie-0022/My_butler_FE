@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { authApi } from '@/api/auth';
 import { Colors } from '@/constants/colors';
+import { parseApiError } from '@/utils/parseApiError';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -53,11 +54,8 @@ export default function RegisterScreen() {
       await authApi.register({ username, email, password });
       // 온보딩 Step 2로 이동
       router.replace('/(onboarding)/step2');
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '회원가입에 실패했습니다.';
-      Alert.alert('회원가입 실패', msg);
+    } catch (error) {
+      Alert.alert('회원가입 실패', parseApiError(error).message);
     } finally {
       setLoading(false);
     }

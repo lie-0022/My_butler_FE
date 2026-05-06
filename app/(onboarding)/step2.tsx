@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { userApi } from '@/api/user';
 import { Colors } from '@/constants/colors';
+import { parseApiError } from '@/utils/parseApiError';
 
 const GENDERS = [
   { label: '남성', value: 'MALE' },
@@ -36,11 +37,8 @@ export default function OnboardingStep2Screen() {
     try {
       await userApi.updateProfile({ name, birthDate, gender });
       router.replace('/(onboarding)/step3');
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '저장에 실패했습니다.';
-      Alert.alert('오류', msg);
+    } catch (error) {
+      Alert.alert('오류', parseApiError(error).message);
     } finally {
       setLoading(false);
     }
