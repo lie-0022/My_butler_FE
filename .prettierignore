@@ -5,3 +5,4 @@ dist/
 build/
 web-build/
 package-lock.json
+SETUP_VERIFICATION.md
