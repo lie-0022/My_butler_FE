@@ -19,27 +19,33 @@ export interface BottleGroupProps {
 }
 
 const CONTAINER: Record<BottleGroupContainerSize, { w: number; h: number }> = {
-  md: { w: 220, h: 260 },
-  lg: { w: 280, h: 340 },
+  md: { w: 160, h: 220 },
+  lg: { w: 200, h: 260 },
 };
 
 /**
- * 3-bottle 배치 좌표 (containerSize="lg" 기준).
- * 배열 인덱스 = 렌더 순서 (0=뒤, 2=앞).
- * - bottles[0] (가장 뒤): 우상단 작게
- * - bottles[1] (중간): 그 앞 살짝 좌하 시프트
- * - bottles[2] (가장 앞): 좌하 가장 크게
+ * 3-bottle 배치 좌표.
+ * 디자인 원본(design/onboarding.jsx login)의 height 비율 220/180/150과
+ * marginRight=-20 / marginBottom=-20,-30 패턴을 우리 size 토큰(md=90×180, sm=60×120)에 매핑.
+ *
+ * 배열 인덱스 = 렌더 순서 (0=뒤, 2=앞):
+ * - bottles[0]: 우상단 가장 작게 (디자인 green/AMARO)
+ * - bottles[1]: 중간 (디자인 clear/DRY GIN)
+ * - bottles[2]: 좌하 가장 크게 (디자인 amber/RESERVE)
+ *
+ * marginRight=-20 → 좌표상 다음 병이 (이전 width - 20)만큼 오른쪽으로.
+ * marginBottom=-20/-30 → bottom이 baseline 아래로 빠짐 → top이 더 큼.
  */
 const POSITIONS_LG: { left: number; top: number }[] = [
-  { left: 200, top: 40 }, // 0 — green/sm 가장 뒤 우상
-  { left: 130, top: 70 }, // 1 — clear/md 중간
-  { left: 30, top: 20 }, // 2 — amber/lg 앞 (가장 큰)
+  { left: 140, top: 130 }, // 0 — green/sm (우하 가장 뒤, 가장 작음)
+  { left: 70, top: 70 }, // 1 — clear/md (중간, 살짝 아래로 빠짐)
+  { left: 0, top: 10 }, // 2 — amber/md (좌상단 가장 앞, 가장 키 큼)
 ];
 
 const POSITIONS_MD: { left: number; top: number }[] = [
-  { left: 150, top: 30 },
-  { left: 95, top: 50 },
-  { left: 20, top: 10 },
+  { left: 110, top: 100 },
+  { left: 55, top: 50 },
+  { left: 0, top: 0 },
 ];
 
 export function BottleGroup({

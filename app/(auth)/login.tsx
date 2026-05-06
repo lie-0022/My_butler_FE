@@ -24,7 +24,7 @@ export default function LoginFrontDoorScreen() {
           bottles={[
             { tone: 'green', label: 'AMARO', size: 'sm' },
             { tone: 'clear', label: 'DRY GIN', size: 'md' },
-            { tone: 'amber', label: 'RESERVE', size: 'lg' },
+            { tone: 'amber', label: 'RESERVE', size: 'md' },
           ]}
         />
       </View>
@@ -85,7 +85,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: -20,
-    opacity: 0.7,
   },
   content: {
     flex: 1,
