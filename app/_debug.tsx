@@ -63,7 +63,7 @@ export default function DebugScreen() {
     {
       category: 'AUTH',
       items: [
-        { label: 'login (Front Door, 옛날)', href: '/(auth)/login', status: 'todo' },
+        { label: 'login (Front Door)', href: '/(auth)/login', status: 'done' },
         { label: 'loginEmail (신규)', href: '/(auth)/login-email', status: 'done' },
         { label: 'register', href: '/(auth)/register', status: 'todo' },
         { label: 'forgot-password', href: '/(auth)/forgot-password', status: 'todo' },
