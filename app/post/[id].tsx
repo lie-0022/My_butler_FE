@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, BackBtn, Eyebrow, IconBtn } from '@/components/ui';
-import { Bottle } from '@/components/illustrations';
+import { CocktailGlass } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 
 interface Comment {
@@ -89,8 +89,7 @@ export default function PostScreen() {
 
           {/* Hero */}
           <View style={styles.hero}>
-            {/* TODO: 작업 17 CocktailGlass로 교체 */}
-            <Bottle tone="amber" height={170} />
+            <CocktailGlass style="rocks" tone="amber" size="lg" />
             <View style={styles.recipeBadge}>
               <Text style={styles.recipeBadgeText}>RECIPE</Text>
             </View>

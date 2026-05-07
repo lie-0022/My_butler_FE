@@ -5,8 +5,12 @@ import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, Chip, Eyebrow, IconBtn } from '@/components/ui';
-import { Bottle, type BottleTone } from '@/components/illustrations';
+import { CocktailGlass, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+
+type GlassToneCompat = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
+const fallbackTone = (t: BottleTone): GlassToneCompat =>
+  t === 'amber' || t === 'clear' || t === 'red' ? t : 'amber';
 
 interface Recipe {
   id: string;
@@ -76,8 +80,7 @@ export default function RecipesTabScreen() {
           testID="recipes-tonight-card"
         >
           <View style={styles.heroGlassWrap} pointerEvents="none">
-            {/* TODO: 작업 17에서 CocktailGlass로 교체. 지금은 Bottle amber로 임시 대체. */}
-            <Bottle tone="amber" height={160} />
+            <CocktailGlass style="rocks" tone="amber" size="lg" />
           </View>
           <Text style={styles.heroEyebrow}>TONIGHT&apos;S POUR</Text>
           <Text style={styles.heroTitle}>
@@ -133,9 +136,8 @@ export default function RecipesTabScreen() {
                 pressed && styles.cardPressed,
               ]}
             >
-              {/* TODO: 작업 17에서 CocktailGlass로 교체. 임시 paper-200 thumb + Bottle 미니. */}
               <View style={styles.cardThumb}>
-                <Bottle tone={r.tone} height={56} />
+                <CocktailGlass style="rocks" tone={fallbackTone(r.tone)} size="sm" />
               </View>
               <View style={styles.cardMeta}>
                 <Text style={[styles.cardTag, !r.canMake && styles.cardTagDim]}>{r.tag}</Text>

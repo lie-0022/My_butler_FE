@@ -6,8 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, Chip, IconBtn } from '@/components/ui';
-import { Bottle, type BottleTone } from '@/components/illustrations';
+import { Bottle, CocktailGlass, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+
+type GlassToneCompat = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
+const fallbackTone = (t: BottleTone): GlassToneCompat =>
+  t === 'amber' || t === 'clear' || t === 'red' ? t : 'amber';
 
 interface Post {
   id: string;
@@ -171,8 +175,11 @@ export default function FeedTabScreen() {
                   </View>
                 ) : (
                   <View style={styles.singleBottle}>
-                    {/* TODO: 작업 17 CocktailGlass로 교체. 임시 Bottle 단일 표시. */}
-                    <Bottle tone={p.tone ?? 'amber'} height={120} />
+                    <CocktailGlass
+                      style="rocks"
+                      tone={fallbackTone(p.tone ?? 'amber')}
+                      size="md"
+                    />
                   </View>
                 )}
               </View>

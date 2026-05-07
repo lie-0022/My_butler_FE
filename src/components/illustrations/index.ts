@@ -10,3 +10,16 @@ export {
   type BottleGroupProps,
   type BottleGroupContainerSize,
 } from './BottleGroup';
+export {
+  CocktailGlass,
+  type CocktailGlassProps,
+  type CocktailGlassStyle,
+  type CocktailGlassTone,
+  type CocktailGlassSize,
+} from './CocktailGlass';
+export {
+  IngChip,
+  type IngChipProps,
+  type IngChipType,
+  type IngChipSize,
+} from './IngChip';

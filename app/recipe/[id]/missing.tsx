@@ -4,26 +4,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, BackBtn, Eyebrow } from '@/components/ui';
-import { Bottle } from '@/components/illustrations';
+import { CocktailGlass, IngChip, type IngChipType } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 
 interface IngHave {
   name: string;
   amt: string;
+  kind: IngChipType;
 }
 interface IngMissing extends IngHave {
   swap: string;
 }
 
 const HAVE: IngHave[] = [
-  { name: 'Gin', amt: '45ml' },
-  { name: 'Lemon Juice', amt: '15ml' },
-  { name: 'Crème de Violette', amt: '7.5ml' },
+  { name: 'Gin', amt: '45ml', kind: 'sugar' },
+  { name: 'Lemon Juice', amt: '15ml', kind: 'lemon' },
+  { name: 'Crème de Violette', amt: '7.5ml', kind: 'cherry' },
 ];
 
 const MISSING: IngMissing[] = [
-  { name: 'Maraschino Liqueur', amt: '15ml', swap: 'Luxardo 추천' },
-  { name: 'Lemon Peel', amt: '1 twist', swap: '가니시' },
+  { name: 'Maraschino Liqueur', amt: '15ml', swap: 'Luxardo 추천', kind: 'cherry' },
+  { name: 'Lemon Peel', amt: '1 twist', swap: '가니시', kind: 'lemon' },
 ];
 
 export default function RecipeMissingScreen() {
@@ -52,9 +53,8 @@ export default function RecipeMissingScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Glass — 작업 17에서 CocktailGlass로 교체 */}
         <View style={styles.glassWrap}>
-          <Bottle tone="clear" height={140} />
+          <CocktailGlass style="coupe" tone="clear" size="md" />
         </View>
 
         <View style={styles.center}>
@@ -88,7 +88,7 @@ export default function RecipeMissingScreen() {
         <View style={styles.list}>
           {HAVE.map((ing) => (
             <View key={ing.name} style={styles.haveRow}>
-              <View style={styles.ingChip} />
+              <IngChip type={ing.kind} size="sm" />
               <Text style={styles.haveName}>{ing.name}</Text>
               <Text style={styles.haveAmt}>{ing.amt}</Text>
               <Text style={styles.haveCheck}>✓</Text>
@@ -109,7 +109,7 @@ export default function RecipeMissingScreen() {
               onPress={() => router.push('/bottle/new')}
               style={({ pressed }) => [styles.missRow, pressed && styles.missRowPressed]}
             >
-              <View style={[styles.ingChip, styles.ingChipMiss]} />
+              <IngChip type={ing.kind} size="sm" />
               <View style={styles.missMeta}>
                 <Text style={styles.missName}>{ing.name}</Text>
                 <Text style={styles.missSwap}>↳ {ing.swap}</Text>

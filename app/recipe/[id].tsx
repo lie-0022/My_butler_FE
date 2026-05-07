@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, BackBtn, CTA, Eyebrow, IconBtn } from '@/components/ui';
-import { Bottle } from '@/components/illustrations';
+import { CocktailGlass, IngChip, type IngChipType } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 
 interface Ingredient {
@@ -13,6 +13,7 @@ interface Ingredient {
   amt: string;
   unit: string;
   have: boolean;
+  kind: IngChipType;
   note?: string;
 }
 
@@ -30,11 +31,11 @@ const RECIPE = {
   story:
     '클래식 Old Fashioned에 피티한 싱글몰트 한 방울을 더하면, 잔 위로 모닥불 향이 피어오릅니다.',
   ingredients: [
-    { name: 'Bourbon Whisky', amt: '60', unit: 'ml', have: true },
-    { name: 'Lagavulin 16', amt: '5', unit: 'ml', have: true, note: 'float' },
-    { name: 'Demerara Syrup', amt: '7.5', unit: 'ml', have: true },
-    { name: 'Angostura Bitters', amt: '2', unit: 'dashes', have: true },
-    { name: 'Orange Peel', amt: '1', unit: '', have: true },
+    { name: 'Bourbon Whisky', amt: '60', unit: 'ml', have: true, kind: 'lemon' },
+    { name: 'Lagavulin 16', amt: '5', unit: 'ml', have: true, kind: 'lemon', note: 'float' },
+    { name: 'Demerara Syrup', amt: '7.5', unit: 'ml', have: true, kind: 'sugar' },
+    { name: 'Angostura Bitters', amt: '2', unit: 'dashes', have: true, kind: 'cherry' },
+    { name: 'Orange Peel', amt: '1', unit: '', have: true, kind: 'orange' },
   ] as Ingredient[],
   steps: [
     { h: '셰이킹 대신 스터링', d: '믹싱 글라스에 얼음과 시럽, 비터스를 넣고 스터' },
@@ -96,9 +97,8 @@ export default function RecipeDetailScreen() {
           <Text style={styles.subtitle}>{RECIPE.sub}</Text>
         </View>
 
-        {/* Glass card — 작업 17에서 CocktailGlass로 교체 */}
         <View style={styles.glassCard}>
-          <Bottle tone="amber" height={150} />
+          <CocktailGlass style="rocks" tone="amber" size="lg" />
         </View>
 
         {/* Stats */}
@@ -145,8 +145,7 @@ export default function RecipeDetailScreen() {
                   i < RECIPE.ingredients.length - 1 && styles.ingRowBorder,
                 ]}
               >
-                {/* TODO: 작업 17에서 IngChip으로 교체 */}
-                <View style={styles.ingChip} />
+                <IngChip type={ing.kind} size="sm" />
                 <View style={styles.ingMeta}>
                   <Text style={styles.ingName}>
                     {ing.name}
