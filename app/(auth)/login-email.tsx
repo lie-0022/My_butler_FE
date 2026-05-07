@@ -19,6 +19,7 @@ import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z.object({
@@ -45,6 +46,11 @@ export default function LoginEmailScreen() {
   });
 
   const onSubmit = async (values: LoginEmailForm) => {
+    // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
+    if (!BACKEND_ENABLED) {
+      router.replace('/(tabs)');
+      return;
+    }
     setSubmitting(true);
     try {
       // 백엔드 username 필드를 email로 사용 (작업 18에서 정리 예정).

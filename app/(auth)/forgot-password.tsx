@@ -19,6 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import { authApi } from '@/api/auth';
 import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, shadows, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z.object({
@@ -49,6 +50,12 @@ export default function ForgotPasswordScreen() {
   const emailValue = watch('email');
 
   const onSubmit = async (values: ResetForm) => {
+    // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
+    if (!BACKEND_ENABLED) {
+      setSubmittedEmail(values.email);
+      setState('sent');
+      return;
+    }
     setSubmitting(true);
     try {
       await authApi.requestPasswordReset({ email: values.email });

@@ -19,6 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import { authApi } from '@/api/auth';
 import { AppBar, BackBtn, CTA, Eyebrow, Input, ProgressDots } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z
@@ -56,6 +57,7 @@ export default function RegisterScreen() {
 
   // 기존 register.tsx의 username 중복확인 로직 보존 — email을 username 필드로 매핑.
   const checkEmailAvailable = async () => {
+    if (!BACKEND_ENABLED) return; // UI 단계: 백엔드 호출 보류 (작업 18에서 활성)
     const email = getValues('email').trim();
     if (!email || !z.string().email().safeParse(email).success) return;
     setEmailStatus('checking');
@@ -74,6 +76,11 @@ export default function RegisterScreen() {
     }
     if (emailStatus === 'taken') {
       Alert.alert('이메일 중복', '이미 사용 중인 이메일입니다.');
+      return;
+    }
+    // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
+    if (!BACKEND_ENABLED) {
+      router.replace('/(onboarding)/step1');
       return;
     }
     setSubmitting(true);

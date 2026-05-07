@@ -26,6 +26,7 @@ import {
   ProgressDots,
 } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
 
 const LEVELS = ['입문', '즐김', '애호', '전문'] as const;
@@ -92,6 +93,11 @@ export default function OnboardingStep1Screen() {
   });
 
   const onSubmit = async (values: Step1Form) => {
+    // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
+    if (!BACKEND_ENABLED) {
+      router.push('/(onboarding)/step2');
+      return;
+    }
     setSubmitting(true);
     try {
       const birthDate = `${values.birthYear.padStart(4, '0')}-${values.birthMonth.padStart(2, '0')}-${values.birthDay.padStart(2, '0')}`;

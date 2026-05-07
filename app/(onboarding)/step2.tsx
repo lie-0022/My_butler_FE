@@ -22,6 +22,7 @@ import {
 } from '@/components/ui';
 import { Bottle, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
 
 interface TasteCategory {
@@ -64,6 +65,11 @@ export default function OnboardingStep2Screen() {
 
   const handleNext = async () => {
     if (selectedTastes.length === 0) return;
+    // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
+    if (!BACKEND_ENABLED) {
+      router.push('/(onboarding)/step3');
+      return;
+    }
     setSubmitting(true);
     try {
       await userApi.savePreferences({

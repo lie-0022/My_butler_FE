@@ -50,6 +50,7 @@
 - **`TouchableOpacity` 금지** → `Pressable` (시각 피드백은 `({ pressed }) => ...` 패턴).
 - **`localStorage` / `sessionStorage` 사용 금지** → Zustand `persist` 미들웨어 또는 `expo-secure-store`.
 - **`SysBar` 컴포넌트 사용 금지** (디자인 데모용, RN에서는 OS 상태바와 중복됨). 상태바 스타일링은 `expo-status-bar`의 `<StatusBar style="dark|light" />`로 처리.
+- **UI 작업 단계 동안 백엔드 API 호출 금지**. 모든 화면 완성 후 작업 18(백엔드 연동)에서 일괄 활성화한다. 폼 onSubmit은 `BACKEND_ENABLED` 플래그 분기로 API를 건너뛰고 다음 화면으로 직접 navigate. zod/react-hook-form 검증은 그대로 유지하되 axios 호출은 작업 18에서 활성. 상세는 `src/utils/backend.ts` 참조.
 
 ---
 
