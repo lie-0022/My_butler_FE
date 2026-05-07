@@ -51,7 +51,7 @@ export default function RegisterScreen() {
   } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '', passwordConfirm: '' },
-    mode: 'onBlur',
+    mode: 'onChange', // 입력 즉시 isValid 갱신 — CTA 활성화 타이밍 자연스럽게
   });
 
   // 기존 register.tsx의 username 중복확인 로직 보존 — email을 username 필드로 매핑.
@@ -122,7 +122,8 @@ export default function RegisterScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 70 : 0}
       >
         <ScrollView
           style={styles.flex}

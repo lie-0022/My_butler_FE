@@ -72,9 +72,9 @@ export default function DebugScreen() {
     {
       category: 'ONBOARDING',
       items: [
-        { label: 'step1 (placeholder)', href: '/(onboarding)/step1', status: 'todo' },
-        { label: 'step2', href: '/(onboarding)/step2', status: 'todo' },
-        { label: 'step3', href: '/(onboarding)/step3', status: 'todo' },
+        { label: 'step1 (signup2)', href: '/(onboarding)/step1', status: 'done' },
+        { label: 'step2 (signup3)', href: '/(onboarding)/step2', status: 'done' },
+        { label: 'step3 (welcome)', href: '/(onboarding)/step3', status: 'done' },
       ],
     },
     {

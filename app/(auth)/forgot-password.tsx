@@ -107,10 +107,12 @@ function InputView({
   onSubmit,
   insetsBottom,
 }: InputViewProps) {
+  const insets = useSafeAreaInsets();
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       testID="forgot-password-screen-input"
     >
       <ScrollView
