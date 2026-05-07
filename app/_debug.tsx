@@ -88,6 +88,33 @@ export default function DebugScreen() {
       ],
     },
     {
+      category: 'STACK (상세)',
+      items: [
+        {
+          label: 'bottle/[id] (barDetail)',
+          href: { pathname: '/bottle/[id]', params: { id: 'test-id' } },
+          status: 'done',
+        },
+        { label: 'bottle/new (barAdd)', href: '/bottle/new', status: 'done' },
+        { label: 'bar/insight', href: '/bar/insight', status: 'done' },
+        {
+          label: 'recipe/[id] (Detail)',
+          href: { pathname: '/recipe/[id]', params: { id: 'test-id' } },
+          status: 'done',
+        },
+        {
+          label: 'recipe/[id]/missing',
+          href: { pathname: '/recipe/[id]/missing', params: { id: 'test-id' } },
+          status: 'done',
+        },
+        {
+          label: 'post/[id]',
+          href: { pathname: '/post/[id]', params: { id: 'test-id' } },
+          status: 'done',
+        },
+      ],
+    },
+    {
       category: 'AUTH STATE',
       items: [
         { label: '로그아웃 (토큰 클리어)', status: 'new', onPress: handleLogout },
