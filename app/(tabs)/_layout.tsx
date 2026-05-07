@@ -16,12 +16,7 @@ function HomeIcon({ color, size = 22 }: TabIconProps) {
         strokeWidth={1.8}
         strokeLinejoin="round"
       />
-      <Path
-        d="M12 13.5v6M9 20h6"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
+      <Path d="M12 13.5v6M9 20h6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -35,12 +30,7 @@ function RecipeIcon({ color, size = 22 }: TabIconProps) {
         strokeWidth={1.8}
         strokeLinejoin="round"
       />
-      <Path
-        d="M12 13v6M9 20h6"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
+      <Path d="M12 13v6M9 20h6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }

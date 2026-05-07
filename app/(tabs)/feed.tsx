@@ -87,10 +87,7 @@ export default function FeedTabScreen() {
   const [filter, setFilter] = useState('All');
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="tab-feed-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-feed-screen">
       <StatusBar style="dark" />
       <AppBar
         title="Counter Talk"
@@ -109,10 +106,7 @@ export default function FeedTabScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Filter chips */}
@@ -138,7 +132,7 @@ export default function FeedTabScreen() {
           {MOCK_POSTS.map((p) => (
             <Pressable
               key={p.id}
-              onPress={() => router.push('/_debug')}
+              onPress={() => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
               testID={`feed-post-${p.id}`}
               style={({ pressed }) => [styles.post, pressed && styles.postPressed]}
             >
@@ -165,21 +159,15 @@ export default function FeedTabScreen() {
               <View style={styles.visual}>
                 {p.bottles ? (
                   <View style={styles.bottleRow}>
-                    {(['amber', 'clear', 'green', 'amber', 'red'] as BottleTone[]).map(
-                      (tn, j) => (
-                        <View key={j} style={styles.bottleSlot}>
-                          <Bottle tone={tn} height={70 + (j % 2 === 0 ? 8 : 0)} level={0.7} />
-                        </View>
-                      ),
-                    )}
+                    {(['amber', 'clear', 'green', 'amber', 'red'] as BottleTone[]).map((tn, j) => (
+                      <View key={j} style={styles.bottleSlot}>
+                        <Bottle tone={tn} height={70 + (j % 2 === 0 ? 8 : 0)} level={0.7} />
+                      </View>
+                    ))}
                   </View>
                 ) : (
                   <View style={styles.singleBottle}>
-                    <CocktailGlass
-                      style="rocks"
-                      tone={fallbackTone(p.tone ?? 'amber')}
-                      size="md"
-                    />
+                    <CocktailGlass style="rocks" tone={fallbackTone(p.tone ?? 'amber')} size="md" />
                   </View>
                 )}
               </View>

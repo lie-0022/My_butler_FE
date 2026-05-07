@@ -24,12 +24,66 @@ interface BottleItem {
 
 // 작업 18(백엔드 연동)에서 실제 인벤토리 API로 교체.
 const MOCK_INVENTORY: BottleItem[] = [
-  { id: '1', name: 'Lagavulin 16', category: '위스키', tone: 'amber', level: 0.42, volume: 700, abv: 43, label: 'LAGAVULIN' },
-  { id: '2', name: 'Hendricks Gin', category: '진', tone: 'clear', level: 0.78, volume: 700, abv: 41.4, label: 'HENDRICKS' },
-  { id: '3', name: 'Campari', category: '리큐르', tone: 'red', level: 0.22, volume: 750, abv: 25, label: 'CAMPARI' },
-  { id: '4', name: 'Green Chartreuse', category: '리큐르', tone: 'green', level: 0.65, volume: 700, abv: 55, label: 'CHARTREUSE' },
-  { id: '5', name: 'Bulleit Bourbon', category: '위스키', tone: 'amber', level: 0.88, volume: 700, abv: 45, label: 'BULLEIT' },
-  { id: '6', name: 'Plantation Rum', category: '럼', tone: 'amber', level: 0.55, volume: 700, abv: 40, label: 'PLANTATION' },
+  {
+    id: '1',
+    name: 'Lagavulin 16',
+    category: '위스키',
+    tone: 'amber',
+    level: 0.42,
+    volume: 700,
+    abv: 43,
+    label: 'LAGAVULIN',
+  },
+  {
+    id: '2',
+    name: 'Hendricks Gin',
+    category: '진',
+    tone: 'clear',
+    level: 0.78,
+    volume: 700,
+    abv: 41.4,
+    label: 'HENDRICKS',
+  },
+  {
+    id: '3',
+    name: 'Campari',
+    category: '리큐르',
+    tone: 'red',
+    level: 0.22,
+    volume: 750,
+    abv: 25,
+    label: 'CAMPARI',
+  },
+  {
+    id: '4',
+    name: 'Green Chartreuse',
+    category: '리큐르',
+    tone: 'green',
+    level: 0.65,
+    volume: 700,
+    abv: 55,
+    label: 'CHARTREUSE',
+  },
+  {
+    id: '5',
+    name: 'Bulleit Bourbon',
+    category: '위스키',
+    tone: 'amber',
+    level: 0.88,
+    volume: 700,
+    abv: 45,
+    label: 'BULLEIT',
+  },
+  {
+    id: '6',
+    name: 'Plantation Rum',
+    category: '럼',
+    tone: 'amber',
+    level: 0.55,
+    volume: 700,
+    abv: 40,
+    label: 'PLANTATION',
+  },
 ];
 
 const CATEGORIES = ['전체', '위스키', '진', '럼', '리큐르', '믹서'];
@@ -58,27 +112,26 @@ export default function BarHomeScreen() {
   const lowStock = inventory.filter((i) => i.level < 0.3).length;
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="tab-bar-home-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-bar-home-screen">
       <StatusBar style="dark" />
       <AppBar
         title="My Bar"
         right={
-          <IconBtn onPress={() => router.push('/_debug')} testID="bar-add-bottle-button">
+          <IconBtn onPress={() => router.push('/bottle/new')} testID="bar-add-bottle-button">
             <Svg width={14} height={14} viewBox="0 0 14 14">
-              <Path d="M7 2v10M2 7h10" stroke={colors.ink[900]} strokeWidth={1.8} strokeLinecap="round" />
+              <Path
+                d="M7 2v10M2 7h10"
+                stroke={colors.ink[900]}
+                strokeWidth={1.8}
+                strokeLinecap="round"
+              />
             </Svg>
           </IconBtn>
         }
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero counter — 다크 카드 */}
@@ -90,11 +143,11 @@ export default function BarHomeScreen() {
           </View>
           <View style={styles.heroStatus}>
             <Text style={styles.heroStatusText}>
-              <Text style={{ color: colors.amber[200] }}>● </Text>
+              <Text style={styles.dotOk}>● </Text>
               충분 {total - lowStock}
             </Text>
             <Text style={styles.heroStatusText}>
-              <Text style={{ color: colors.semantic.danger }}>● </Text>
+              <Text style={styles.dotDanger}>● </Text>
               부족 {lowStock}
             </Text>
           </View>
@@ -128,7 +181,7 @@ export default function BarHomeScreen() {
           {inventory.map((item) => (
             <Pressable
               key={item.id}
-              onPress={() => router.push('/_debug')}
+              onPress={() => router.push({ pathname: '/bottle/[id]', params: { id: item.id } })}
               testID={`bar-inventory-item-${item.id}`}
               style={({ pressed }) => [styles.invRow, pressed && styles.invRowPressed]}
             >
@@ -157,7 +210,7 @@ export default function BarHomeScreen() {
 
         {/* Insight CTA */}
         <Pressable
-          onPress={() => router.push('/_debug')}
+          onPress={() => router.push('/bar/insight')}
           style={({ pressed }) => [styles.insightBtn, pressed && styles.insightBtnPressed]}
         >
           <Text style={styles.insightText}>지난 30일 소비 인사이트 보기</Text>
@@ -219,6 +272,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.paper[50],
   },
+  dotOk: { color: colors.amber[200] },
+  dotDanger: { color: colors.semantic.danger },
   shelfRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',

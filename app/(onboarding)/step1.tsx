@@ -16,15 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { userApi } from '@/api/user';
-import {
-  AppBar,
-  BackBtn,
-  Chip,
-  CTA,
-  Eyebrow,
-  Input,
-  ProgressDots,
-} from '@/components/ui';
+import { AppBar, BackBtn, Chip, CTA, Eyebrow, Input, ProgressDots } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
@@ -116,10 +108,7 @@ export default function OnboardingStep1Screen() {
   };
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="onboarding-step1-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="onboarding-step1-screen">
       <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} testID="onboarding-step1-back-button" />}
@@ -261,7 +250,15 @@ interface BirthBoxProps {
   testID: string;
 }
 
-function BirthBox({ value, onChangeText, onBlur, placeholder, maxLength, flex, testID }: BirthBoxProps) {
+function BirthBox({
+  value,
+  onChangeText,
+  onBlur,
+  placeholder,
+  maxLength,
+  flex,
+  testID,
+}: BirthBoxProps) {
   return (
     <TextInput
       style={[styles.birthBox, { flex }]}

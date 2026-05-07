@@ -47,10 +47,7 @@ export default function ProfileTabScreen() {
   };
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="tab-profile-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-profile-screen">
       <StatusBar style="dark" />
       <AppBar
         title=""
@@ -69,10 +66,7 @@ export default function ProfileTabScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Avatar + stats */}
@@ -94,9 +88,7 @@ export default function ProfileTabScreen() {
         </View>
 
         <Text style={styles.bioEyebrow}>SEOUL · HOME BAR</Text>
-        <Text style={styles.bioName}>
-          {nickname}
-        </Text>
+        <Text style={styles.bioName}>{nickname}</Text>
         <Text style={styles.bioBody}>
           위스키 3년차 · 스모키한 한 잔을 사랑하는 사람{'\n'}
           매주 수요일 실험 기록 공유합니다.
@@ -118,11 +110,7 @@ export default function ProfileTabScreen() {
             <View style={styles.shelfRow}>
               {SHELF_TONES.map((tn, j) => (
                 <View key={j} style={styles.shelfBottle}>
-                  <Bottle
-                    tone={tn}
-                    height={62 + (j % 2 === 0 ? 6 : 0)}
-                    level={0.5 + j * 0.05}
-                  />
+                  <Bottle tone={tn} height={62 + (j % 2 === 0 ? 6 : 0)} level={0.5 + j * 0.05} />
                 </View>
               ))}
             </View>

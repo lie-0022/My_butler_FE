@@ -6,12 +6,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import {
-  Bottle,
-  BottleGroup,
-  type BottleSize,
-  type BottleTone,
-} from '@/components/illustrations';
+import { Bottle, BottleGroup, type BottleSize, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, spacing } from '@/constants';
 
 const TONES: BottleTone[] = ['amber', 'clear', 'red', 'green'];
@@ -24,10 +19,7 @@ export default function TestBottleScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar style="dark" />
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
       >
         <Text style={styles.title}>Bottle 명세 검증 (작업 16-3)</Text>
 

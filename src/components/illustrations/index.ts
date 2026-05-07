@@ -1,9 +1,4 @@
-export {
-  Bottle,
-  type BottleProps,
-  type BottleSize,
-  type BottleTone,
-} from './Bottle';
+export { Bottle, type BottleProps, type BottleSize, type BottleTone } from './Bottle';
 export {
   BottleGroup,
   type BottleConfig,
@@ -17,9 +12,4 @@ export {
   type CocktailGlassTone,
   type CocktailGlassSize,
 } from './CocktailGlass';
-export {
-  IngChip,
-  type IngChipProps,
-  type IngChipType,
-  type IngChipSize,
-} from './IngChip';
+export { IngChip, type IngChipProps, type IngChipType, type IngChipSize } from './IngChip';

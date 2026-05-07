@@ -115,10 +115,7 @@ export default function RegisterScreen() {
   const ctaDisabled = submitting || !isValid || !agreeTerms || emailStatus === 'taken';
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="register-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="register-screen">
       <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} testID="register-back-button" />}

@@ -224,7 +224,7 @@ fs.display = 48
 | 인증 가드 부재                            | `(tabs)`, `(onboarding)` 그룹에 라우트 보호 없음. `app/index.tsx` 단발 리다이렉트에만 의존 |
 | ✅ `(tabs)/index.tsx` useEffect deps 누락 | 작업 9에서 `setUser` 추가                                                                  |
 | ✅ `parseApiError(err)` 헬퍼 부재         | 작업 9에서 `src/utils/parseApiError.ts` 생성 + 5개 화면 마이그레이션 완료                  |
-| `SysBar` deprecated                       | 모든 화면에서 사용 금지. 작업 14 즈음 `src/components/ui/SysBar.tsx` 일괄 삭제 예정         |
+| ✅ `SysBar` deprecated                    | 작업 17.5에서 `src/components/ui/SysBar.tsx` 삭제 + index re-export 제거                   |
 
 ---
 

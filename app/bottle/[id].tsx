@@ -49,10 +49,7 @@ export default function BottleDetailScreen() {
   };
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="bottle-detail-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="bottle-detail-screen">
       <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} />}
@@ -69,10 +66,7 @@ export default function BottleDetailScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + 96 },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 96 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero card with Bottle */}
@@ -96,10 +90,7 @@ export default function BottleDetailScreen() {
               { k: '용량', v: `${item.volume}`, sub: 'ml' },
               { k: 'ABV', v: `${item.abv}`, sub: 'alcohol' },
             ].map((s, i) => (
-              <View
-                key={s.k}
-                style={[styles.statCol, i < 2 && styles.statColBorder]}
-              >
+              <View key={s.k} style={[styles.statCol, i < 2 && styles.statColBorder]}>
                 <Text style={styles.statK}>{s.k}</Text>
                 <Text style={styles.statV}>{s.v}</Text>
                 <Text style={styles.statSub}>{s.sub}</Text>

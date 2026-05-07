@@ -98,8 +98,8 @@ export default function PostScreen() {
           <Text style={styles.tag}>SMOKY · AGAVE</Text>
           <Text style={styles.title}>Oaxacan Old Fashioned</Text>
           <Text style={styles.body}>
-            전통 Old Fashioned에 메즈칼을 더해 스모키하면서도 깊이 있는 플레이버를 만들었습니다.
-            큰 얼음 한 덩어리와 오렌지 껍질이 핵심이에요.
+            전통 Old Fashioned에 메즈칼을 더해 스모키하면서도 깊이 있는 플레이버를 만들었습니다. 큰
+            얼음 한 덩어리와 오렌지 껍질이 핵심이에요.
           </Text>
 
           {/* Tags */}
@@ -118,7 +118,12 @@ export default function PostScreen() {
               onPress={() => setLiked((v) => !v)}
               testID="post-like-button"
             >
-              <Svg width={18} height={18} viewBox="0 0 18 18" fill={liked ? colors.semantic.danger : 'none'}>
+              <Svg
+                width={18}
+                height={18}
+                viewBox="0 0 18 18"
+                fill={liked ? colors.semantic.danger : 'none'}
+              >
                 <Path
                   d="M9 15.5s-6-4-6-8.5a4 4 0 016-2 4 4 0 016 2c0 4.5-6 8.5-6 8.5z"
                   stroke={colors.semantic.danger}
@@ -161,7 +166,7 @@ export default function PostScreen() {
                     <Text style={styles.commentTime}>{c.time}</Text>
                   </Text>
                   <Text style={styles.commentText}>{c.body}</Text>
-                  <Text style={styles.commentReply}>답글  ♡ 3</Text>
+                  <Text style={styles.commentReply}>답글 ♡ 3</Text>
                 </View>
               </View>
             ))}

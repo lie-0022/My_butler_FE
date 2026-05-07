@@ -18,10 +18,7 @@ export default function OnboardingStep3Screen() {
   };
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="onboarding-step3-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="onboarding-step3-screen">
       <StatusBar style="light" />
 
       <View style={styles.bottlesWrap} pointerEvents="none">
@@ -40,16 +37,10 @@ export default function OnboardingStep3Screen() {
         <Text style={styles.heading}>
           반가워요, <Text style={styles.headingAccent}>{nickname}</Text>님.
         </Text>
-        <Text style={styles.subheading}>
-          이제 당신의 바 카운터를{'\n'}채워볼 차례예요.
-        </Text>
+        <Text style={styles.subheading}>이제 당신의 바 카운터를{'\n'}채워볼 차례예요.</Text>
 
         <View style={styles.ctaGroup}>
-          <CTA
-            variant="amber"
-            onPress={goToBar}
-            testID="onboarding-step3-enter-button"
-          >
+          <CTA variant="amber" onPress={goToBar} testID="onboarding-step3-enter-button">
             첫 재료 등록하기
           </CTA>
           <Pressable

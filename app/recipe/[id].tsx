@@ -55,19 +55,13 @@ export default function RecipeDetailScreen() {
   const missingCount = RECIPE.ingredients.filter((i) => !i.have).length;
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="recipe-detail-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="recipe-detail-screen">
       <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} />}
         title=""
         right={
-          <IconBtn
-            onPress={() => setFavorited((v) => !v)}
-            testID="recipe-detail-favorite-button"
-          >
+          <IconBtn onPress={() => setFavorited((v) => !v)} testID="recipe-detail-favorite-button">
             <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
               <Path
                 d="M3 2h8v10l-4-2.5L3 12V2z"
@@ -82,10 +76,7 @@ export default function RecipeDetailScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + 96 },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 96 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -129,9 +120,7 @@ export default function RecipeDetailScreen() {
               testID="recipe-detail-missing-link"
               style={styles.missingLink}
             >
-              <Text style={styles.missingLinkText}>
-                재료 {missingCount}개 부족 · 자세히 →
-              </Text>
+              <Text style={styles.missingLinkText}>재료 {missingCount}개 부족 · 자세히 →</Text>
             </Pressable>
           ) : null}
 
@@ -140,23 +129,27 @@ export default function RecipeDetailScreen() {
             {RECIPE.ingredients.map((ing, i) => (
               <View
                 key={ing.name}
-                style={[
-                  styles.ingRow,
-                  i < RECIPE.ingredients.length - 1 && styles.ingRowBorder,
-                ]}
+                style={[styles.ingRow, i < RECIPE.ingredients.length - 1 && styles.ingRowBorder]}
               >
                 <IngChip type={ing.kind} size="sm" />
                 <View style={styles.ingMeta}>
                   <Text style={styles.ingName}>
                     {ing.name}
-                    {ing.note ? <Text style={styles.ingNote}>  {ing.note.toUpperCase()}</Text> : null}
+                    {ing.note ? (
+                      <Text style={styles.ingNote}> {ing.note.toUpperCase()}</Text>
+                    ) : null}
                   </Text>
                 </View>
                 <Text style={styles.ingAmt}>
                   {ing.amt}
                   <Text style={styles.ingUnit}> {ing.unit}</Text>
                 </Text>
-                <View style={[styles.haveDot, { backgroundColor: ing.have ? colors.semanticBg.ok : colors.semanticBg.danger }]}>
+                <View
+                  style={[
+                    styles.haveDot,
+                    { backgroundColor: ing.have ? colors.semanticBg.ok : colors.semanticBg.danger },
+                  ]}
+                >
                   {ing.have ? (
                     <Svg width={10} height={10} viewBox="0 0 10 10">
                       <Path
@@ -200,7 +193,11 @@ export default function RecipeDetailScreen() {
           <Text style={styles.heartText}>{favorited ? '♥' : '♡'}</Text>
         </Pressable>
         <View style={styles.actionCtaWrap}>
-          <CTA variant="amber" onPress={() => router.push('/_debug')} testID="recipe-detail-made-button">
+          <CTA
+            variant="amber"
+            onPress={() => router.push('/_debug')}
+            testID="recipe-detail-made-button"
+          >
             만드는 중 · 가이드 시작
           </CTA>
         </View>

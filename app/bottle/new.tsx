@@ -42,11 +42,7 @@ export default function BottleNewScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="bottle-new-screen">
       <StatusBar style="dark" />
-      <AppBar
-        left={<BackBtn onPress={() => router.back()} />}
-        title="재료 등록"
-        serif={false}
-      />
+      <AppBar left={<BackBtn onPress={() => router.back()} />} title="재료 등록" serif={false} />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -123,9 +119,7 @@ export default function BottleNewScreen() {
                   style={[styles.toneItem, on && styles.toneItemActive]}
                 >
                   <Bottle tone={t.id} height={60} />
-                  <Text style={[styles.toneLabel, on && styles.toneLabelActive]}>
-                    {t.label}
-                  </Text>
+                  <Text style={[styles.toneLabel, on && styles.toneLabelActive]}>{t.label}</Text>
                 </Pressable>
               );
             })}

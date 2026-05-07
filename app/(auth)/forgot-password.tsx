@@ -133,9 +133,7 @@ function InputView({
           <Text style={styles.heading}>
             <Text style={styles.headingAccent}>이메일</Text>을{'\n'}알려주세요
           </Text>
-          <Text style={styles.subheading}>
-            가입하신 이메일로 재설정 링크를{'\n'}보내드릴게요.
-          </Text>
+          <Text style={styles.subheading}>가입하신 이메일로 재설정 링크를{'\n'}보내드릴게요.</Text>
 
           <Controller
             control={control}
@@ -197,17 +195,11 @@ function SentView({ email, insetsBottom, onBackToLogin, onResend }: SentViewProp
           <Text style={styles.sentEmail}>{email || 'your@email.com'}</Text>
           {'\n'}으로 재설정 링크를 보냈어요.{'\n'}메일함을 확인해주세요.
         </Text>
-        <Text style={styles.sentHint}>
-          메일이 오지 않았다면{'\n'}스팸함도 확인해보세요.
-        </Text>
+        <Text style={styles.sentHint}>메일이 오지 않았다면{'\n'}스팸함도 확인해보세요.</Text>
       </View>
 
       <View style={[styles.footer, { paddingBottom: insetsBottom + spacing[5] }]}>
-        <CTA
-          variant="amber"
-          onPress={onBackToLogin}
-          testID="forgot-password-back-to-login-button"
-        >
+        <CTA variant="amber" onPress={onBackToLogin} testID="forgot-password-back-to-login-button">
           로그인으로 돌아가기
         </CTA>
         <Pressable

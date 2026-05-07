@@ -37,17 +37,10 @@ export default function BarInsightScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="bar-insight-screen">
       <StatusBar style="dark" />
-      <AppBar
-        left={<BackBtn onPress={() => router.back()} />}
-        title="지난 30일"
-        serif={false}
-      />
+      <AppBar left={<BackBtn onPress={() => router.back()} />} title="지난 30일" serif={false} />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         <Eyebrow>MONTHLY COUNTER</Eyebrow>
@@ -67,9 +60,7 @@ export default function BarInsightScreen() {
           </View>
           <View style={[styles.card, styles.cardAmber]}>
             <Text style={[styles.cardEyebrow, styles.cardEyebrowAmber]}>TOP FLAVOR</Text>
-            <Text style={[styles.cardNumber, styles.cardNumberAmber]}>
-              스모키{'\n'}& 드라이
-            </Text>
+            <Text style={[styles.cardNumber, styles.cardNumberAmber]}>스모키{'\n'}& 드라이</Text>
           </View>
         </View>
 
@@ -81,8 +72,7 @@ export default function BarInsightScreen() {
               <View key={d.name} style={styles.barItem}>
                 <View style={styles.barLabelRow}>
                   <Text style={styles.barName}>
-                    <Text style={styles.barRank}>{String(i + 1).padStart(2, '0')}</Text>{' '}
-                    {d.name}
+                    <Text style={styles.barRank}>{String(i + 1).padStart(2, '0')}</Text> {d.name}
                   </Text>
                   <Text style={styles.barAmount}>{d.consumed}ml</Text>
                 </View>

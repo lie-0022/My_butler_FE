@@ -131,10 +131,7 @@ export default function DebugScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
       >
         {groups.map((group) => (
           <View key={group.category} style={styles.group}>

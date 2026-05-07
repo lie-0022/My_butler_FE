@@ -48,12 +48,7 @@ const POSITIONS_MD: { left: number; top: number }[] = [
   { left: 0, top: 0 },
 ];
 
-export function BottleGroup({
-  bottles,
-  containerSize = 'lg',
-  testID,
-  style,
-}: BottleGroupProps) {
+export function BottleGroup({ bottles, containerSize = 'lg', testID, style }: BottleGroupProps) {
   const dim = CONTAINER[containerSize];
   const positions = containerSize === 'lg' ? POSITIONS_LG : POSITIONS_MD;
 
@@ -67,12 +62,7 @@ export function BottleGroup({
         const pos = positions[i] ?? positions[positions.length - 1];
         return (
           <View key={`${b.tone}-${i}`} style={[styles.slot, pos]}>
-            <Bottle
-              tone={b.tone}
-              size={b.size ?? 'md'}
-              label={b.label}
-              level={b.level}
-            />
+            <Bottle tone={b.tone} size={b.size ?? 'md'} label={b.label} level={b.level} />
           </View>
         );
       })}

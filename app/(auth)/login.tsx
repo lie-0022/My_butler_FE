@@ -11,10 +11,7 @@ export default function LoginFrontDoorScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="login-frontdoor-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="login-frontdoor-screen">
       <StatusBar style="light" />
 
       {/* 우상단 히어로 병 그룹 (3 tone stack — 작업 16-2) */}
@@ -29,12 +26,7 @@ export default function LoginFrontDoorScreen() {
         />
       </View>
 
-      <View
-        style={[
-          styles.content,
-          { paddingBottom: insets.bottom + spacing[7] },
-        ]}
-      >
+      <View style={[styles.content, { paddingBottom: insets.bottom + spacing[7] }]}>
         <Text style={styles.eyebrow}>MY · BUTLER · 2026</Text>
 
         <Text style={styles.heading}>
@@ -58,10 +50,7 @@ export default function LoginFrontDoorScreen() {
           <Pressable
             onPress={() => router.push('/(auth)/login-email')}
             testID="login-existing-user-link"
-            style={({ pressed }) => [
-              styles.secondaryBtn,
-              pressed && styles.secondaryBtnPressed,
-            ]}
+            style={({ pressed }) => [styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}
           >
             <Text style={styles.secondaryBtnText}>이미 있어요 · 로그인</Text>
           </Pressable>

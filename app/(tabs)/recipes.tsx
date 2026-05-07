@@ -27,9 +27,35 @@ interface Recipe {
 const MOCK_RECIPES: Recipe[] = [
   { id: '1', name: 'Penicillin', abv: 22, time: 3, tone: 'amber', canMake: true, tag: 'SMOKY' },
   { id: '2', name: 'Negroni', abv: 28, time: 2, tone: 'red', canMake: true, tag: 'BITTER' },
-  { id: '3', name: 'Gin Basil Smash', abv: 18, time: 4, tone: 'green', canMake: false, missing: 1, tag: 'HERBAL' },
-  { id: '4', name: 'Espresso Martini', abv: 20, time: 3, tone: 'amber', canMake: true, tag: 'RICH' },
-  { id: '5', name: 'Aviation', abv: 24, time: 3, tone: 'clear', canMake: false, missing: 2, tag: 'FLORAL' },
+  {
+    id: '3',
+    name: 'Gin Basil Smash',
+    abv: 18,
+    time: 4,
+    tone: 'green',
+    canMake: false,
+    missing: 1,
+    tag: 'HERBAL',
+  },
+  {
+    id: '4',
+    name: 'Espresso Martini',
+    abv: 20,
+    time: 3,
+    tone: 'amber',
+    canMake: true,
+    tag: 'RICH',
+  },
+  {
+    id: '5',
+    name: 'Aviation',
+    abv: 24,
+    time: 3,
+    tone: 'clear',
+    canMake: false,
+    missing: 2,
+    tag: 'FLORAL',
+  },
 ];
 
 const FILTERS = ['All', '위스키 베이스', '진 베이스', '논알콜', '클래식', '시그니처'];
@@ -40,10 +66,7 @@ export default function RecipesTabScreen() {
   const [filter, setFilter] = useState('All');
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="tab-recipes-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-recipes-screen">
       <StatusBar style="dark" />
       <AppBar
         title="Recipe Book"
@@ -67,15 +90,12 @@ export default function RecipesTabScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Tonight hero */}
         <Pressable
-          onPress={() => router.push('/_debug')}
+          onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: 'tonight' } })}
           style={({ pressed }) => [styles.hero, pressed && styles.heroPressed]}
           testID="recipes-tonight-card"
         >
@@ -89,7 +109,7 @@ export default function RecipesTabScreen() {
           </Text>
           <Text style={styles.heroSub}>오늘 밤, 당신의 라가불린을 위해</Text>
           <View style={styles.heroFooter}>
-            <Text style={styles.heroMeta}>● 3 min   ● 28% ABV   ● 재료 OK</Text>
+            <Text style={styles.heroMeta}>● 3 min ● 28% ABV ● 재료 OK</Text>
             <View style={styles.heroArrow}>
               <Text style={styles.heroArrowText}>→</Text>
             </View>
@@ -128,7 +148,7 @@ export default function RecipesTabScreen() {
           {MOCK_RECIPES.map((r) => (
             <Pressable
               key={r.id}
-              onPress={() => router.push('/_debug')}
+              onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: r.id } })}
               testID={`recipes-card-${r.id}`}
               style={({ pressed }) => [
                 styles.card,

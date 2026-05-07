@@ -54,8 +54,7 @@ const SIZE_TO_HEIGHT: Record<BottleSize, number> = {
 // 명세 §3 — viewBox 좌표 (height=100 정규화).
 // 옵션 B 적용: 어깨와 본체를 단일 path로 통합. 명세 §3-3/§3-4의 두 path 사이 폭 차이로
 // 발생하던 "사이 둥근 면" 단차를 제거.
-const PATH_CAP =
-  'M 13.5 0 H 28.5 Q 30.5 0, 30.5 2 V 8 H 11.5 V 2 Q 11.5 0, 13.5 0 Z';
+const PATH_CAP = 'M 13.5 0 H 28.5 Q 30.5 0, 30.5 2 V 8 H 11.5 V 2 Q 11.5 0, 13.5 0 Z';
 const PATH_BODY = `
   M 2 35
   Q 2 30, 21 30
@@ -170,20 +169,8 @@ export function Bottle({
           <Path d={PATH_BODY} />
         </ClipPath>
         {/* 명세 §7 외곽 그림자 */}
-        <SvgFilter
-          id={idShadow}
-          x="-20%"
-          y="-10%"
-          width="140%"
-          height="120%"
-        >
-          <FeDropShadow
-            dx="0"
-            dy="3"
-            stdDeviation="3"
-            floodColor="#281405"
-            floodOpacity="0.3"
-          />
+        <SvgFilter id={idShadow} x="-20%" y="-10%" width="140%" height="120%">
+          <FeDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#281405" floodOpacity="0.3" />
         </SvgFilter>
       </Defs>
 

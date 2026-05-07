@@ -1,25 +1,11 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { userApi } from '@/api/user';
-import {
-  AppBar,
-  BackBtn,
-  Chip,
-  CTA,
-  Eyebrow,
-  ProgressDots,
-} from '@/components/ui';
+import { AppBar, BackBtn, Chip, CTA, Eyebrow, ProgressDots } from '@/components/ui';
 import { Bottle, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
@@ -52,15 +38,11 @@ export default function OnboardingStep2Screen() {
   const [submitting, setSubmitting] = useState(false);
 
   const toggleTaste = (id: string) => {
-    setSelectedTastes((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedTastes((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const toggleFlavor = (f: string) => {
-    setSelectedFlavors((prev) =>
-      prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f],
-    );
+    setSelectedFlavors((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   };
 
   const handleNext = async () => {
@@ -74,8 +56,7 @@ export default function OnboardingStep2Screen() {
     try {
       await userApi.savePreferences({
         categories: selectedTastes,
-        preferenceDetails:
-          selectedFlavors.length > 0 ? { flavors: selectedFlavors } : undefined,
+        preferenceDetails: selectedFlavors.length > 0 ? { flavors: selectedFlavors } : undefined,
       });
       router.push('/(onboarding)/step3');
     } catch (error) {
@@ -91,10 +72,7 @@ export default function OnboardingStep2Screen() {
       : '하나 이상 선택해주세요';
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="onboarding-step2-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="onboarding-step2-screen">
       <StatusBar style="dark" />
       <AppBar
         left={<BackBtn onPress={() => router.back()} testID="onboarding-step2-back-button" />}
@@ -132,9 +110,7 @@ export default function OnboardingStep2Screen() {
                   <View style={styles.cardBottle}>
                     <Bottle tone={t.tone} height={52} />
                   </View>
-                  <Text style={[styles.cardLabel, on && styles.cardLabelOn]}>
-                    {t.label}
-                  </Text>
+                  <Text style={[styles.cardLabel, on && styles.cardLabelOn]}>{t.label}</Text>
                   {on ? (
                     <View style={styles.cardCheck}>
                       <Svg width={14} height={14} viewBox="0 0 14 14">

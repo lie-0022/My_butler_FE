@@ -35,22 +35,12 @@ export default function RecipeMissingScreen() {
   const ratio = HAVE.length / total;
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="recipe-missing-screen"
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="recipe-missing-screen">
       <StatusBar style="dark" />
-      <AppBar
-        left={<BackBtn onPress={() => router.back()} />}
-        title="재료 부족"
-        serif={false}
-      />
+      <AppBar left={<BackBtn onPress={() => router.back()} />} title="재료 부족" serif={false} />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + spacing[6] },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.glassWrap}>

@@ -6,14 +6,7 @@
  *
  * Phase 1 MVP: 외곽 + 액체 + 좌상단 ice/광택 highlight 단순 구성.
  */
-import Svg, {
-  ClipPath,
-  Defs,
-  LinearGradient,
-  Path,
-  Rect,
-  Stop,
-} from 'react-native-svg';
+import Svg, { ClipPath, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 export type CocktailGlassStyle = 'rocks' | 'coupe' | 'highball';
 export type CocktailGlassTone = 'amber' | 'clear' | 'red';
@@ -76,12 +69,8 @@ export function CocktailGlass({
       </Defs>
 
       {/* style별 전체 글래스 + 액체 + 광택 */}
-      {glassStyle === 'rocks' && (
-        <RocksGlass idLiquid={idLiquid} idIce={idIce} idClip={idClip} />
-      )}
-      {glassStyle === 'coupe' && (
-        <CoupeGlass idLiquid={idLiquid} idIce={idIce} idClip={idClip} />
-      )}
+      {glassStyle === 'rocks' && <RocksGlass idLiquid={idLiquid} idIce={idIce} idClip={idClip} />}
+      {glassStyle === 'coupe' && <CoupeGlass idLiquid={idLiquid} idIce={idIce} idClip={idClip} />}
       {glassStyle === 'highball' && (
         <HighballGlass idLiquid={idLiquid} idIce={idIce} idClip={idClip} />
       )}
@@ -161,10 +150,7 @@ function CoupeGlass({ idLiquid, idIce, idClip }: PartProps) {
         clipPath={`url(#${idClip})`}
       />
       {/* 좌상 광택 */}
-      <Path
-        d="M 28 26 Q 32 36 42 38 L 36 28 Z"
-        fill={`url(#${idIce})`}
-      />
+      <Path d="M 28 26 Q 32 36 42 38 L 36 28 Z" fill={`url(#${idIce})`} />
       {/* 줄기 */}
       <Rect x={49} y={50} width={2} height={28} fill={GLASS_STROKE} />
       {/* 받침 */}

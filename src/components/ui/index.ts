@@ -7,5 +7,4 @@ export { Eyebrow, type EyebrowProps } from './Eyebrow';
 export { IconBtn, type IconBtnProps } from './IconBtn';
 export { Input, type InputProps, type InputHintType } from './Input';
 export { ProgressDots, type ProgressDotsProps } from './ProgressDots';
-export { SysBar, type SysBarProps } from './SysBar';
 export { Toggle, type ToggleProps } from './Toggle';
