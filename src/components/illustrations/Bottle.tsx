@@ -1,184 +1,269 @@
+/**
+ * Bottle SVG 컴포넌트.
+ *
+ * 명세: Bottle.spec.md (v3 — 2026-05-07 사용자 인계).
+ * viewBox 0 0 42 100, 컨테이너 width = height × 0.38 + 4. 본체가 viewBox의 90%
+ * 차지해 디자인 원본과 정확 매칭.
+ *
+ * 호환 처리:
+ * - 새 명세: { height: number, label: boolean, labelText: string }
+ * - 기존 BottleGroup이 사용하던 props { size: 'sm'|'md'|'lg'|'xl', label: string }도 그대로 받도록
+ *   union으로 처리. size가 주어지면 height로 매핑, label이 string이면 labelText로 사용.
+ */
+import { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
 import Svg, {
   ClipPath,
   Defs,
+  FeDropShadow,
+  Filter as SvgFilter,
+  G,
   LinearGradient,
   Path,
   Rect,
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
-import { colors, fontFamily } from '@/constants';
+import { fontFamily } from '@/constants';
 
-export type BottleTone = 'amber' | 'clear' | 'red' | 'green';
-export type BottleSize = 'sm' | 'md' | 'lg';
+export type BottleTone = 'amber' | 'clear' | 'green' | 'red' | 'blue';
+export type BottleSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface BottleProps {
   tone?: BottleTone;
-  /** 0~1 액체 잔량. 1=가득, 0=빈 병. */
+  /** 0~1 액체 잔량. */
   level?: number;
-  /** 병 라벨 텍스트. */
-  label?: string;
+  /** 명세 §0: 실제 렌더 height(px). default 80. */
+  height?: number;
+  /** 호환: size 토큰 사용 시 height로 매핑. height가 우선. */
   size?: BottleSize;
+  /** 라벨 표시 — boolean(labelText 별도 사용) 또는 string(곧 라벨 텍스트). */
+  label?: boolean | string;
+  labelText?: string;
   testID?: string;
 }
 
-const SIZE_MAP: Record<BottleSize, { w: number; h: number }> = {
-  sm: { w: 60, h: 120 },
-  md: { w: 90, h: 180 },
-  lg: { w: 160, h: 320 },
+// 호환 — size → height 매핑.
+const SIZE_TO_HEIGHT: Record<BottleSize, number> = {
+  sm: 80,
+  md: 150,
+  lg: 180,
+  xl: 220,
 };
 
-const VB_W = 100;
-const VB_H = 200;
-
-// 본체 path (어깨 + 본체 + 둥근 바닥)
-const BODY_PATH = `
-  M 40 48
-  Q 40 54 28 58
-  Q 0 64 0 80
-  L 0 192
-  Q 0 198 6 198
-  L 94 198
-  Q 100 198 100 192
-  L 100 80
-  Q 100 64 72 58
-  Q 60 54 60 48
+// 명세 §3 — viewBox 좌표 (height=100 정규화).
+// 옵션 B 적용: 어깨와 본체를 단일 path로 통합. 명세 §3-3/§3-4의 두 path 사이 폭 차이로
+// 발생하던 "사이 둥근 면" 단차를 제거.
+const PATH_CAP =
+  'M 13.5 0 H 28.5 Q 30.5 0, 30.5 2 V 8 H 11.5 V 2 Q 11.5 0, 13.5 0 Z';
+const PATH_BODY = `
+  M 2 35
+  Q 2 30, 21 30
+  Q 40 30, 40 35
+  L 40 92
+  Q 40 98, 34 98
+  H 8
+  Q 2 98, 2 92
+  L 2 35
   Z
 `;
 
-// 액체 클리핑 영역(어깨 하단 ~ 바닥)
-const LIQUID_TOP_Y = 80;
-const LIQUID_BOTTOM_Y = 198;
-const LIQUID_AREA_H = LIQUID_BOTTOM_Y - LIQUID_TOP_Y; // 118
-
-interface ToneGradient {
-  liquid: [string, string, string, string];
-  glass: string; // 빈 공간(상단 어깨 영역)에 칠할 옅은 색
-}
-
-const TONE_GRADIENTS: Record<BottleTone, ToneGradient> = {
-  amber: {
-    liquid: [colors.amber[200], colors.amber[300], colors.amber[400], '#8b4f10'],
-    glass: 'rgba(228,168,60,0.18)',
-  },
-  clear: {
-    liquid: ['#f0e8d4', '#d9c89a', '#a08a5a', '#7a6138'],
-    glass: 'rgba(220,200,160,0.22)',
-  },
-  red: {
-    liquid: ['#d96a4a', '#c63820', '#7a1810', '#4a0e05'],
-    glass: 'rgba(180,60,40,0.18)',
-  },
-  green: {
-    liquid: ['#a8b478', '#7a8a4a', '#4a5a2a', '#2e3a14'],
-    glass: 'rgba(100,130,60,0.20)',
-  },
+// 명세 §4-2 — 유리 그라데이션 (가로).
+// 옵션 D 적용: 알파 +0.20 일괄 상향(0.28~0.45 → 0.50~0.65). 액체와의 재질 대비 완화.
+type GradPair = readonly [string, string];
+const GLASS_COLORS: Record<BottleTone, GradPair> = {
+  amber: ['rgba(200,150,80,0.50)', 'rgba(80,40,15,0.62)'],
+  clear: ['rgba(220,200,160,0.50)', 'rgba(130,100,60,0.55)'],
+  green: ['rgba(100,130,60,0.55)', 'rgba(30,50,10,0.65)'],
+  red: ['rgba(180,60,40,0.55)', 'rgba(60,10,5,0.65)'],
+  blue: ['rgba(70,100,140,0.55)', 'rgba(20,30,50,0.65)'],
 };
 
-// 좌측 광택의 톤별 강도 (clear는 잘 보이게, dark tone은 살짝만)
-const HIGHLIGHT_OPACITY: Record<BottleTone, number> = {
-  amber: 0.4,
-  clear: 0.55,
-  red: 0.25,
-  green: 0.25,
+// 명세 §4-3 — 액체 그라데이션 (수직).
+const LIQUID_COLORS: Record<BottleTone, GradPair> = {
+  amber: ['#e4a83c', '#8b4f10'],
+  clear: ['#d9c89a', '#7a6138'],
+  green: ['#7a8a4a', '#2e3a14'],
+  red: ['#c63820', '#4a0e05'],
+  blue: ['#3a5a7a', '#16263e'],
 };
+
+// 명세 §4-1 — 캡 그라데이션 (tone 무관).
+const CAP_GRAD: GradPair = ['#6d4410', '#3d240a'];
+
+// 명세 §8-2 — 라벨 폰트.
+const LABEL_FONT_SIZE = 7.5;
+const LABEL_LETTER_SPACING = 0.3;
+const LABEL_PAPER_100 = '#f4ece0';
+const LABEL_INK_900 = '#1a1412';
+const HIGHLIGHT_FILL = 'rgba(255,255,255,0.20)';
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 export function Bottle({
   tone = 'amber',
   level = 1,
+  height,
+  size,
   label,
-  size = 'md',
+  labelText,
   testID,
 }: BottleProps) {
-  const { w, h } = SIZE_MAP[size];
-  const labelFontSize = size === 'sm' ? 7 : size === 'md' ? 9 : 13;
+  // 명세 §1 — height 결정 (height 우선, 없으면 size 매핑, 그것도 없으면 default 80).
+  const H = height ?? (size ? SIZE_TO_HEIGHT[size] : 80);
+  const widthPx = H * 0.38 + 4;
 
-  const clamped = Math.max(0, Math.min(1, level));
-  const liquidH = LIQUID_AREA_H * clamped;
-  const liquidY = LIQUID_BOTTOM_Y - liquidH;
+  // 명세 §5-3 — Animated.timing duration 400ms.
+  const animatedLevel = useRef(new Animated.Value(clamp01(level))).current;
+  useEffect(() => {
+    Animated.timing(animatedLevel, {
+      toValue: clamp01(level),
+      duration: 400,
+      useNativeDriver: false, // SVG 속성은 native driver 불가
+    }).start();
+  }, [level, animatedLevel]);
 
-  const palette = TONE_GRADIENTS[tone];
-  const hlOpacity = HIGHLIGHT_OPACITY[tone];
+  // 명세 §5-3 — y/height interpolate.
+  const liquidY = animatedLevel.interpolate({
+    inputRange: [0, 1],
+    outputRange: [98, 36],
+  });
+  const liquidH = animatedLevel.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 62],
+  });
 
-  // 그라데이션 / 클리핑 ID는 tone마다 분리해 같은 화면에 다중 Bottle이 있어도 충돌 안 나게 한다.
-  const idLiquid = `bottle-liquid-${tone}`;
-  const idCap = `bottle-cap-${tone}`;
-  const idHl = `bottle-hl-${tone}`;
-  const idClip = `bottle-clip-${tone}`;
+  const glass = GLASS_COLORS[tone];
+  const liquid = LIQUID_COLORS[tone];
+
+  // SVG <Defs>의 id는 글로벌 namespace. 한 페이지에 다중 Bottle 있으면 첫 정의가
+  // 모든 Bottle에 적용되는 버그가 발생 → tone별 unique suffix 부여.
+  const idCap = `cap-grad-${tone}`;
+  const idGlass = `glass-grad-${tone}`;
+  const idLiquid = `liquid-grad-${tone}`;
+  const idClip = `body-clip-${tone}`;
+  const idShadow = `bottle-shadow-${tone}`;
+
+  // 라벨 호환 처리.
+  const labelDisplay = resolveLabelText(label, labelText);
 
   return (
-    <Svg width={w} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`} testID={testID}>
+    <Svg width={widthPx} height={H} viewBox="0 0 42 100" testID={testID}>
       <Defs>
-        <LinearGradient id={idLiquid} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={palette.liquid[0]} />
-          <Stop offset="0.35" stopColor={palette.liquid[1]} />
-          <Stop offset="0.75" stopColor={palette.liquid[2]} />
-          <Stop offset="1" stopColor={palette.liquid[3]} />
-        </LinearGradient>
+        {/* 명세 §4-1 캡 (수직) */}
         <LinearGradient id={idCap} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.amber[600]} />
-          <Stop offset="1" stopColor={colors.ink[700]} />
+          <Stop offset="0%" stopColor={CAP_GRAD[0]} />
+          <Stop offset="100%" stopColor={CAP_GRAD[1]} />
         </LinearGradient>
-        <LinearGradient id={idHl} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#ffffff" stopOpacity={hlOpacity * 0.2} />
-          <Stop offset="0.4" stopColor="#ffffff" stopOpacity={hlOpacity} />
-          <Stop offset="1" stopColor="#ffffff" stopOpacity={hlOpacity * 0.2} />
+        {/* 명세 §4-2 유리 (가로) */}
+        <LinearGradient id={idGlass} x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0%" stopColor={glass[0]} />
+          <Stop offset="100%" stopColor={glass[1]} />
         </LinearGradient>
+        {/* 명세 §4-3 액체 (수직) */}
+        <LinearGradient id={idLiquid} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor={liquid[0]} />
+          <Stop offset="100%" stopColor={liquid[1]} />
+        </LinearGradient>
+        {/* 명세 §5-1 본체 클립 */}
         <ClipPath id={idClip}>
-          <Path d={BODY_PATH} />
+          <Path d={PATH_BODY} />
         </ClipPath>
+        {/* 명세 §7 외곽 그림자 */}
+        <SvgFilter
+          id={idShadow}
+          x="-20%"
+          y="-10%"
+          width="140%"
+          height="120%"
+        >
+          <FeDropShadow
+            dx="0"
+            dy="3"
+            stdDeviation="3"
+            floodColor="#281405"
+            floodOpacity="0.3"
+          />
+        </SvgFilter>
       </Defs>
 
-      {/* 코르크 */}
-      <Rect x={35} y={0} width={30} height={15} rx={2} fill={`url(#${idCap})`} />
+      <G filter={`url(#${idShadow})`}>
+        {/* 명세 §3-1 캡 */}
+        <Path d={PATH_CAP} fill={`url(#${idCap})`} />
 
-      {/* 병목 (tone glass 옅은 색) */}
-      <Rect x={40} y={15} width={20} height={33} fill={palette.glass} />
+        {/* 명세 §3-2 넥 */}
+        <Rect x={14.35} y={8} width={13.3} height={24} fill={`url(#${idGlass})`} />
 
-      {/* 본체 외곽 — 빈 공간(액체 없는 부분)의 옅은 글래스 톤 */}
-      <Path d={BODY_PATH} fill={palette.glass} />
+        {/* 옵션 B: 어깨+본체 통합 path (명세 §3-3 + §3-4 합침) */}
+        <Path d={PATH_BODY} fill={`url(#${idGlass})`} />
 
-      {/* 액체 — clipPath로 본체 모양 안에 가둠. height = level × bodyHeight */}
-      {liquidH > 0 ? (
-        <Rect
-          x={0}
+        {/* 명세 §5-2 액체 (애니메이션 보간) */}
+        <AnimatedRect
+          x={2}
           y={liquidY}
-          width={VB_W}
+          width={38}
           height={liquidH}
           fill={`url(#${idLiquid})`}
           clipPath={`url(#${idClip})`}
         />
-      ) : null}
 
-      {/* 좌측 광택 라인 */}
-      <Rect x={14} y={82} width={4} height={108} rx={2} fill={`url(#${idHl})`} />
+        {/* 명세 §6-1 좌측 하이라이트 띠 */}
+        <Rect
+          x={7.7}
+          y={36}
+          width={2}
+          height={62}
+          fill={HIGHLIGHT_FILL}
+          clipPath={`url(#${idClip})`}
+        />
 
-      {/* 라벨 */}
-      {label ? (
-        <>
-          <Rect
-            x={8}
-            y={100}
-            width={84}
-            height={36}
-            rx={1}
-            fill={colors.paper[100]}
-          />
-          <SvgText
-            x={VB_W / 2}
-            y={123}
-            textAnchor="middle"
-            fontFamily={fontFamily.serif.bold}
-            fontSize={labelFontSize}
-            fontWeight="700"
-            fill={colors.ink[900]}
-          >
-            {label}
-          </SvgText>
-        </>
-      ) : null}
+        {/* 명세 §8 라벨 */}
+        {labelDisplay !== null ? (
+          <>
+            <Rect
+              x={4}
+              y={59.56}
+              width={34}
+              height={14}
+              rx={1}
+              ry={1}
+              fill={LABEL_PAPER_100}
+              clipPath={`url(#${idClip})`}
+            />
+            <SvgText
+              x={21}
+              y={69.06}
+              textAnchor="middle"
+              fontFamily={fontFamily.serif.bold}
+              fontWeight="700"
+              fontSize={LABEL_FONT_SIZE}
+              fill={LABEL_INK_900}
+              letterSpacing={LABEL_LETTER_SPACING}
+            >
+              {labelDisplay}
+            </SvgText>
+          </>
+        ) : null}
+      </G>
     </Svg>
   );
+}
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
+function resolveLabelText(
+  label: boolean | string | undefined,
+  labelText: string | undefined,
+): string | null {
+  if (typeof label === 'string') {
+    return label.length > 0 ? label.toUpperCase() : null;
+  }
+  if (label === true) {
+    return labelText && labelText.length > 0 ? labelText.toUpperCase() : null;
+  }
+  return null;
 }
 
 export default Bottle;
