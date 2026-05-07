@@ -1,0 +1,8 @@
+design/
+node_modules/
+.expo/
+dist/
+build/
+web-build/
+package-lock.json
+SETUP_VERIFICATION.md

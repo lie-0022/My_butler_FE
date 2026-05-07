@@ -1,0 +1,116 @@
+/* ============================================================
+   나만의 버틀러 — Design Tokens
+   Mood: Warm Amber, editorial, bar-counter metaphor
+   ============================================================ */
+
+:root {
+  /* ── Surfaces (warm neutrals, not pure black) ───────── */
+  --ink-900: #1a1412;      /* deepest — hero backgrounds */
+  --ink-800: #231b17;      /* card dark */
+  --ink-700: #2e241f;      /* elevated dark */
+  --ink-600: #3d2f27;      /* hairline on dark */
+
+  --paper-50: #faf6ef;     /* app background (warm cream) */
+  --paper-100: #f4ece0;    /* card on paper */
+  --paper-200: #ebe0cf;    /* subtle surface */
+  --paper-300: #d9cab3;    /* divider */
+  --paper-400: #b8a384;    /* muted text */
+
+  /* ── Amber / Brass accents ──────────────────────────── */
+  --amber-50:  #fdf3e0;
+  --amber-100: #f9e3b8;
+  --amber-200: #f2c977;
+  --amber-300: #e4a83c;    /* primary amber */
+  --amber-400: #c88820;    /* hover / active */
+  --amber-500: #9a6414;    /* dark amber */
+  --amber-600: #6d4410;
+
+  --brass:     #c8a265;    /* metallic highlight */
+  --brass-ink: #8b6a2e;
+
+  /* ── Semantic ───────────────────────────────────────── */
+  --ok:        #5a7a3e;    /* fresh olive */
+  --warn:      #c9751f;    /* warm warning */
+  --danger:    #a43220;    /* oxidized red */
+  --ok-bg:     #eaf1d9;
+  --warn-bg:   #fbe7cc;
+  --danger-bg: #f6d8cf;
+
+  /* ── Type scale ─────────────────────────────────────── */
+  --font-serif: 'Fraunces', 'Times New Roman', serif;
+  --font-sans:  'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', ui-monospace, monospace;
+
+  --fs-display: 48px;
+  --fs-h1: 36px;
+  --fs-h2: 28px;
+  --fs-xl: 22px;
+  --fs-lg: 17px;
+  --fs-md: 14px;
+  --fs-sm: 12px;
+  --fs-xs: 11px;
+  --fs-xxs: 10px;
+  /* legacy aliases */
+  --fs-h3: var(--fs-lg);
+  --fs-body: var(--fs-md);
+
+  /* ── Radii (tweakable) ──────────────────────────────── */
+  --r-mult: 1;
+  --r-xs: calc(4px  * var(--r-mult));
+  --r-sm: calc(8px  * var(--r-mult));
+  --r-md: calc(12px * var(--r-mult));
+  --r-lg: calc(18px * var(--r-mult));
+  --r-xl: calc(28px * var(--r-mult));
+  --r-pill: 999px;
+
+  /* ── Spacing ────────────────────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  /* ── Shadows (warm) ─────────────────────────────────── */
+  --sh-sm: 0 1px 2px rgba(60,32,10,0.06);
+  --sh-md: 0 4px 14px rgba(60,32,10,0.08);
+  --sh-lg: 0 18px 40px rgba(45,25,8,0.16);
+  --sh-inset: inset 0 1px 0 rgba(255,255,255,0.55);
+
+  /* ── Grain texture (used as background overlay) ─ */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.2  0 0 0 0 0.1  0 0 0 0.06 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* type helpers */
+.serif { font-family: var(--font-serif); font-optical-sizing: auto; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.mono  { font-family: var(--font-mono); }
+.tnum  { font-variant-numeric: tabular-nums; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--paper-400);
+}
+
+/* bottle / glass CSS illustration base */
+.vessel {
+  position: relative;
+  background: linear-gradient(160deg, #6a3d1a 0%, #3d1f0a 55%, #1a0a02 100%);
+  box-shadow: inset 0 -8px 24px rgba(0,0,0,0.55), inset 0 2px 4px rgba(255,220,170,0.25);
+}
+.vessel.amber { background: linear-gradient(160deg, #e4a83c 0%, #9a6414 55%, #4a2a0a 100%); }
+.vessel.clear { background: linear-gradient(160deg, #e8dfc9 0%, #b09a73 55%, #70583a 100%); }
+.vessel.green { background: linear-gradient(160deg, #7a8a4a 0%, #3e4a1a 55%, #1c220a 100%); }
+.vessel.red   { background: linear-gradient(160deg, #8a2a1a 0%, #4a0e05 55%, #1a0402 100%); }

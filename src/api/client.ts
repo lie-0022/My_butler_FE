@@ -44,10 +44,10 @@ apiClient.interceptors.request.use(
 
 // 응답 인터셉터: 401 시 refresh 토큰으로 재발급
 let isRefreshing = false;
-let failedQueue: Array<{
+let failedQueue: {
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
-}> = [];
+}[] = [];
 
 const processQueue = (error: AxiosError | null, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -152,7 +152,10 @@ export const authEventEmitter = {
     this.listeners.set(event, [...existing, listener]);
     return () => {
       const current = this.listeners.get(event) ?? [];
-      this.listeners.set(event, current.filter((fn) => fn !== listener));
+      this.listeners.set(
+        event,
+        current.filter((fn) => fn !== listener),
+      );
     };
   },
 };

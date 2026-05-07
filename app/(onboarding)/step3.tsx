@@ -1,123 +1,122 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { userApi } from '@/api/user';
-import { Colors } from '@/constants/colors';
-
-const CATEGORIES = [
-  { label: '🍽️ 음식', value: 'FOOD' },
-  { label: '✈️ 여행', value: 'TRAVEL' },
-  { label: '🎬 영화/드라마', value: 'ENTERTAINMENT' },
-  { label: '🏋️ 운동', value: 'FITNESS' },
-  { label: '📚 독서', value: 'READING' },
-  { label: '🎮 게임', value: 'GAMING' },
-  { label: '🎵 음악', value: 'MUSIC' },
-  { label: '🛍️ 쇼핑', value: 'SHOPPING' },
-];
+import { CTA } from '@/components/ui';
+import { BottleGroup } from '@/components/illustrations';
+import { useAuthStore } from '@/store/authStore';
+import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/constants';
 
 export default function OnboardingStep3Screen() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
+  const nickname = user?.name ?? '바텐더';
 
-  const toggle = (value: string) => {
-    setSelected((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
-    );
-  };
-
-  const handleComplete = async () => {
-    if (selected.length === 0) {
-      Alert.alert('선택 오류', '관심 카테고리를 하나 이상 선택해주세요.');
-      return;
-    }
-    setLoading(true);
-    try {
-      await userApi.savePreferences({ categories: selected });
-      router.replace('/(tabs)');
-    } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '저장에 실패했습니다.';
-      Alert.alert('오류', msg);
-    } finally {
-      setLoading(false);
-    }
+  const goToBar = () => {
+    router.replace('/(tabs)');
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      {/* 진행 표시 */}
-      <View style={styles.progressRow}>
-        <View style={[styles.progressDot, styles.progressDotDone]} />
-        <View style={[styles.progressDot, styles.progressDotDone]} />
-        <View style={[styles.progressDot, styles.progressDotActive]} />
+    <View style={[styles.root, { paddingTop: insets.top }]} testID="onboarding-step3-screen">
+      <StatusBar style="light" />
+
+      <View style={styles.bottlesWrap} pointerEvents="none">
+        <BottleGroup
+          containerSize="lg"
+          bottles={[
+            { tone: 'green', label: '', size: 'sm' },
+            { tone: 'amber', label: 'RESERVE', size: 'md' },
+            { tone: 'clear', label: '', size: 'sm' },
+          ]}
+        />
       </View>
 
-      <Text style={styles.title}>취향을 알려주세요</Text>
-      <Text style={styles.subtitle}>관심 있는 카테고리를 선택해주세요 (복수 선택 가능)</Text>
+      <View style={[styles.content, { paddingBottom: insets.bottom + spacing[7] }]}>
+        <Text style={styles.eyebrow}>— WELCOME TO THE COUNTER —</Text>
+        <Text style={styles.heading}>
+          반가워요, <Text style={styles.headingAccent}>{nickname}</Text>님.
+        </Text>
+        <Text style={styles.subheading}>이제 당신의 바 카운터를{'\n'}채워볼 차례예요.</Text>
 
-      <View style={styles.grid}>
-        {CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.value}
-            style={[styles.chip, selected.includes(cat.value) && styles.chipSelected]}
-            onPress={() => toggle(cat.value)}
+        <View style={styles.ctaGroup}>
+          <CTA variant="amber" onPress={goToBar} testID="onboarding-step3-enter-button">
+            첫 재료 등록하기
+          </CTA>
+          <Pressable
+            onPress={goToBar}
+            hitSlop={6}
+            style={styles.skipBtn}
+            testID="onboarding-step3-skip-button"
           >
-            <Text
-              style={[styles.chipText, selected.includes(cat.value) && styles.chipTextSelected]}
-            >
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            <Text style={styles.skipText}>둘러보기 먼저 할게요</Text>
+          </Pressable>
+        </View>
       </View>
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleComplete}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>{loading ? '저장 중...' : '완료'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  inner: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 40 },
-  progressRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginBottom: 32 },
-  progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border },
-  progressDotDone: { backgroundColor: Colors.primaryDark },
-  progressDotActive: { backgroundColor: Colors.primary },
-  title: { fontSize: 24, fontWeight: 'bold', color: Colors.text, marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 32 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 40 },
-  chip: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+  root: {
+    flex: 1,
+    backgroundColor: colors.ink[900],
   },
-  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary + '15' },
-  chipText: { fontSize: 15, color: Colors.textSecondary },
-  chipTextSelected: { color: Colors.primary, fontWeight: '600' },
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+  bottlesWrap: {
+    position: 'absolute',
+    top: '18%',
+    alignSelf: 'center',
+    opacity: 0.9,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing[7],
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: Colors.white, fontSize: 16, fontWeight: '600' },
+  eyebrow: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: fontSize.xs,
+    color: colors.brass.base,
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+    marginBottom: spacing[3],
+    textAlign: 'center',
+  },
+  heading: {
+    fontFamily: fontFamily.serif.bold,
+    fontSize: 38,
+    color: colors.paper[50],
+    lineHeight: 38 * 1.05,
+    letterSpacing: -0.7,
+    marginBottom: spacing[3],
+    textAlign: 'center',
+  },
+  headingAccent: {
+    fontFamily: fontFamily.serif.regular,
+    color: colors.amber[200],
+    fontStyle: 'italic',
+  },
+  subheading: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+    lineHeight: fontSize.md * lineHeight.relaxed,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  ctaGroup: {
+    marginTop: spacing[7] + spacing[2], // 40
+    width: '100%',
+    gap: spacing[3],
+  },
+  skipBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+  },
+  skipText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+  },
 });

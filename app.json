@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mybutler.app"
@@ -15,11 +16,13 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

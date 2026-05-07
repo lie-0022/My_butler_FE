@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { tokenStorage, authEventEmitter } from '../api/client';
 import { authApi } from '../api/auth';
+import { BACKEND_ENABLED } from '../utils/backend';
 import type { UserProfileResponse } from '../types/user';
 
 interface AuthState {
@@ -43,6 +44,12 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     logout: async () => {
+      // UI 단계: 백엔드 호출 스킵하고 로컬만 정리. 작업 18에서 BACKEND_ENABLED=true로 활성.
+      if (!BACKEND_ENABLED) {
+        await tokenStorage.clear();
+        set({ isAuthenticated: false, user: null });
+        return;
+      }
       try {
         await authApi.logout();
       } catch {
