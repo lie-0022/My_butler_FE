@@ -79,7 +79,13 @@ export default function DebugScreen() {
     },
     {
       category: 'TABS (메인)',
-      items: [{ label: '(tabs) 진입', href: '/(tabs)', status: 'todo' }],
+      items: [
+        { label: '(tabs) 홈 (My Bar)', href: '/(tabs)', status: 'done' },
+        { label: '(tabs) Recipes', href: '/(tabs)/recipes', status: 'done' },
+        { label: '(tabs) AR (placeholder)', href: '/(tabs)/ar', status: 'done' },
+        { label: '(tabs) Feed', href: '/(tabs)/feed', status: 'done' },
+        { label: '(tabs) Profile', href: '/(tabs)/profile', status: 'done' },
+      ],
     },
     {
       category: 'AUTH STATE',
