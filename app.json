@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.mybutler.app"
     },
     "android": {
-      "package": "com.mybutler.app"
+      "package": "com.mybutler.app",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",

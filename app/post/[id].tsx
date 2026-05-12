@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -38,6 +39,21 @@ export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const [comment, setComment] = useState('');
   const [liked, setLiked] = useState(false);
+  const [kbVisible, setKbVisible] = useState(false);
+
+  // 키보드가 떠 있을 때는 인풋바 paddingBottom을 줄여 키보드와 사이의 빈 공간 제거.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKbVisible(true));
+    const hide = Keyboard.addListener(hideEvt, () => setKbVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const inputBarPaddingBottom = kbVisible ? spacing[3] : insets.bottom + spacing[3];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="post-detail-screen">
@@ -62,7 +78,7 @@ export default function PostScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       >
         <ScrollView
@@ -173,8 +189,8 @@ export default function PostScreen() {
           </View>
         </ScrollView>
 
-        {/* Comment input */}
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom + spacing[3] }]}>
+        {/* Comment input — KAV가 키보드 위로 밀어줌 */}
+        <View style={[styles.inputBar, { paddingBottom: inputBarPaddingBottom }]}>
           <LinearGradient
             colors={['#e4a83c', '#6d4410']}
             start={{ x: 0, y: 0 }}
