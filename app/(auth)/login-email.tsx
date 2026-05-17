@@ -13,6 +13,7 @@ import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 
 const schema = z.object({
   email: z.string().email('올바른 이메일 형식이 아닙니다.'),
@@ -26,6 +27,8 @@ export default function LoginEmailScreen() {
   const insets = useSafeAreaInsets();
   const { setUser: _setUser } = useAuthStore();
   const [submitting, setSubmitting] = useState(false);
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insets.bottom + spacing[6];
 
   const {
     control,
@@ -45,9 +48,13 @@ export default function LoginEmailScreen() {
     }
     setSubmitting(true);
     try {
-      // 백엔드 username 필드를 email로 사용 (작업 18에서 정리 예정).
-      await authApi.login({ username: values.email, password: values.password });
-      router.replace('/(tabs)');
+      const res = await authApi.login({ email: values.email, password: values.password });
+      // onboardingCompleted 플래그로 진입 화면 분기
+      if (res.data.onboardingCompleted) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(onboarding)/step1');
+      }
     } catch (error) {
       Alert.alert('로그인 실패', parseApiError(error).message);
     } finally {
@@ -145,7 +152,7 @@ export default function LoginEmailScreen() {
             </View>
           </View>
 
-          <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[6] }]}>
+          <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
             <Text style={styles.footerText}>
               계정이 없으신가요?{' '}
               <Text

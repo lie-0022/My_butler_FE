@@ -45,7 +45,7 @@ export default function DebugScreen() {
 
   const handleCheckToken = async () => {
     const access = await tokenStorage.getAccessToken();
-    const refresh = await tokenStorage.getRefreshCookie();
+    const refresh = await tokenStorage.getRefreshToken();
     Alert.alert(
       '토큰 상태',
       [

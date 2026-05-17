@@ -1,43 +1,109 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, BackBtn, Eyebrow } from '@/components/ui';
 import { CocktailGlass, IngChip, type IngChipType } from '@/components/illustrations';
+import { recipeApi } from '@/api/recipe';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import type { RecipeDetailResponse, RecipeIngredient } from '@/types/recipe';
+import type { InventoryItemSummary } from '@/types/inventory';
 
-interface IngHave {
-  name: string;
-  amt: string;
-  kind: IngChipType;
-}
-interface IngMissing extends IngHave {
-  swap: string;
-}
+const guessIngChip = (name: string): IngChipType => {
+  const n = name.toLowerCase();
+  if (n.includes('lemon') || n.includes('레몬')) return 'lemon';
+  if (n.includes('lime') || n.includes('라임')) return 'lime';
+  if (n.includes('orange') || n.includes('오렌지')) return 'orange';
+  if (n.includes('cherry') || n.includes('체리') || n.includes('bitter')) return 'cherry';
+  if (n.includes('sugar') || n.includes('syrup') || n.includes('시럽')) return 'sugar';
+  if (n.includes('salt') || n.includes('소금')) return 'salt';
+  return 'lemon';
+};
 
-const HAVE: IngHave[] = [
-  { name: 'Gin', amt: '45ml', kind: 'sugar' },
-  { name: 'Lemon Juice', amt: '15ml', kind: 'lemon' },
-  { name: 'Crème de Violette', amt: '7.5ml', kind: 'cherry' },
-];
-
-const MISSING: IngMissing[] = [
-  { name: 'Maraschino Liqueur', amt: '15ml', swap: 'Luxardo 추천', kind: 'cherry' },
-  { name: 'Lemon Peel', amt: '1 twist', swap: '가니시', kind: 'lemon' },
-];
+/**
+ * 인벤토리에 해당 재료가 있는지 검사 (단순 substring 매칭).
+ * BE에 ingredient master 매핑 테이블이 없어 휴리스틱이 최선.
+ */
+const hasIngredient = (ing: RecipeIngredient, inv: InventoryItemSummary[]): boolean => {
+  const ingName = ing.name.toLowerCase().trim();
+  return inv.some((b) => {
+    const bn = b.name.toLowerCase();
+    return bn.includes(ingName) || ingName.includes(bn);
+  });
+};
 
 export default function RecipeMissingScreen() {
-  const { id: _id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const total = HAVE.length + MISSING.length;
-  const ratio = HAVE.length / total;
+  const [recipe, setRecipe] = useState<RecipeDetailResponse | null>(null);
+  const [inventory, setInventory] = useState<InventoryItemSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    if (!BACKEND_ENABLED || !id) return;
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) return;
+    try {
+      const [r, inv] = await Promise.all([
+        recipeApi.getById(numericId),
+        inventoryApi.list({ size: 100 }),
+      ]);
+      setRecipe(r.data);
+      setInventory(inv.data.content);
+    } catch {
+      /* noop */
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchAll().finally(() => setLoading(false));
+  }, [fetchAll]);
+
+  const { have, missing } = useMemo(() => {
+    if (!recipe) return { have: [], missing: [] };
+    const h: RecipeIngredient[] = [];
+    const m: RecipeIngredient[] = [];
+    recipe.ingredients.forEach((ing) => {
+      (hasIngredient(ing, inventory) ? h : m).push(ing);
+    });
+    return { have: h, missing: m };
+  }, [recipe, inventory]);
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.amber[500]} />
+      </View>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>레시피 정보를 찾을 수 없습니다.</Text>
+      </View>
+    );
+  }
+
+  const total = recipe.ingredients.length;
+  const ratio = total > 0 ? have.length / total : 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="recipe-missing-screen">
       <StatusBar style="dark" />
-      <AppBar left={<BackBtn onPress={() => router.back()} />} title="재료 부족" serif={false} />
+      <AppBar left={<BackBtn onPress={() => router.back()} />} title="재료 비교" serif={false} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
@@ -47,17 +113,17 @@ export default function RecipeMissingScreen() {
           <CocktailGlass style="coupe" tone="clear" size="md" />
         </View>
 
-        <View style={styles.center}>
-          <Eyebrow>ALMOST THERE</Eyebrow>
+        <View style={styles.centerRow}>
+          <Eyebrow>{missing.length === 0 ? 'READY' : 'ALMOST THERE'}</Eyebrow>
           <Text style={styles.heading}>
-            <Text style={styles.headingAccent}>Aviation</Text>을 위해{'\n'}두 가지가 더 필요해요
+            <Text style={styles.headingAccent}>{recipe.name}</Text>
+            {missing.length === 0 ? '\n바로 만들 수 있어요' : `\n${missing.length}개가 더 필요해요`}
           </Text>
           <Text style={styles.summary}>
-            전체 재료 {total}개 중 <Text style={styles.summaryStrong}>{HAVE.length}개 보유</Text>
+            전체 재료 {total}개 중 <Text style={styles.summaryStrong}>{have.length}개 보유</Text>
           </Text>
         </View>
 
-        {/* Progress */}
         <View style={styles.progressCard}>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>READY</Text>
@@ -73,49 +139,51 @@ export default function RecipeMissingScreen() {
           </View>
         </View>
 
-        {/* Have list */}
-        <Eyebrow>보유 중 · {HAVE.length}</Eyebrow>
-        <View style={styles.list}>
-          {HAVE.map((ing) => (
-            <View key={ing.name} style={styles.haveRow}>
-              <IngChip type={ing.kind} size="sm" />
-              <Text style={styles.haveName}>{ing.name}</Text>
-              <Text style={styles.haveAmt}>{ing.amt}</Text>
-              <Text style={styles.haveCheck}>✓</Text>
+        {have.length > 0 ? (
+          <>
+            <Eyebrow>보유 중 · {have.length}</Eyebrow>
+            <View style={styles.list}>
+              {have.map((ing) => (
+                <View key={ing.id} style={styles.haveRow}>
+                  <IngChip type={guessIngChip(ing.name)} size="sm" />
+                  <Text style={styles.haveName}>{ing.name}</Text>
+                  <Text style={styles.haveAmt}>
+                    {ing.amount ?? ''} {ing.unit ?? ''}
+                  </Text>
+                  <Text style={styles.haveCheck}>✓</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        ) : null}
 
-        {/* Missing list */}
-        <View style={styles.missHeader}>
-          <Eyebrow>부족한 재료 · {MISSING.length}</Eyebrow>
-          <Text style={styles.needed}>NEEDED</Text>
-        </View>
-        <View style={styles.list}>
-          {MISSING.map((ing) => (
-            <Pressable
-              key={ing.name}
-              testID={`recipe-missing-add-${ing.name}`}
-              onPress={() => router.push('/bottle/new')}
-              style={({ pressed }) => [styles.missRow, pressed && styles.missRowPressed]}
-            >
-              <IngChip type={ing.kind} size="sm" />
-              <View style={styles.missMeta}>
-                <Text style={styles.missName}>{ing.name}</Text>
-                <Text style={styles.missSwap}>↳ {ing.swap}</Text>
-              </View>
-              <Text style={styles.missAmt}>{ing.amt}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Alternative suggestion */}
-        <View style={styles.alt}>
-          <Text style={styles.altEyebrow}>ALTERNATIVE TONIGHT</Text>
-          <Text style={styles.altText}>
-            지금 바로 만들 수 있는 <Text style={styles.altAccent}>Gin Fizz</Text>는 어떠세요?
-          </Text>
-        </View>
+        {missing.length > 0 ? (
+          <>
+            <View style={styles.missHeader}>
+              <Eyebrow>부족한 재료 · {missing.length}</Eyebrow>
+              <Text style={styles.needed}>NEEDED</Text>
+            </View>
+            <View style={styles.list}>
+              {missing.map((ing) => (
+                <Pressable
+                  key={ing.id}
+                  testID={`recipe-missing-add-${ing.id}`}
+                  onPress={() => router.push('/bottle/new')}
+                  style={({ pressed }) => [styles.missRow, pressed && styles.missRowPressed]}
+                >
+                  <IngChip type={guessIngChip(ing.name)} size="sm" />
+                  <View style={styles.missMeta}>
+                    <Text style={styles.missName}>{ing.name}</Text>
+                    <Text style={styles.missSwap}>↳ 추가하기</Text>
+                  </View>
+                  <Text style={styles.missAmt}>
+                    {ing.amount ?? ''} {ing.unit ?? ''}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -123,6 +191,12 @@ export default function RecipeMissingScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper[50] },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  errorText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+  },
   scroll: {
     paddingHorizontal: spacing[6],
     paddingTop: spacing[3],
@@ -131,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: spacing[3],
   },
-  center: { alignItems: 'center' },
+  centerRow: { alignItems: 'center' },
   heading: {
     fontFamily: fontFamily.serif.bold,
     fontSize: fontSize.h2,
@@ -201,15 +275,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(184,163,132,0.2)',
     borderRadius: radius.sm,
   },
-  ingChip: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.amber[100],
-  },
-  ingChipMiss: {
-    backgroundColor: colors.semanticBg.danger,
-  },
   haveName: {
     flex: 1,
     fontFamily: fontFamily.serif.semibold,
@@ -267,29 +332,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.semantic.danger,
     fontWeight: '600',
-  },
-  alt: {
-    padding: spacing[4],
-    backgroundColor: colors.ink[900],
-    borderRadius: radius.md,
-    marginTop: spacing[2],
-  },
-  altEyebrow: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: fontSize.xxs,
-    color: colors.brass.base,
-    letterSpacing: 2.4,
-    textTransform: 'uppercase',
-  },
-  altText: {
-    fontFamily: fontFamily.serif.semibold,
-    fontSize: fontSize.md + 2,
-    color: colors.paper[50],
-    marginTop: spacing[2],
-    lineHeight: (fontSize.md + 2) * 1.3,
-  },
-  altAccent: {
-    color: colors.amber[200],
-    fontStyle: 'italic',
   },
 });

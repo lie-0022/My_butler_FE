@@ -12,6 +12,7 @@ import { authApi } from '@/api/auth';
 import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, shadows, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z.object({
@@ -107,6 +108,8 @@ function InputView({
   insetsBottom,
 }: InputViewProps) {
   const insets = useSafeAreaInsets();
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insetsBottom + spacing[5];
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -151,7 +154,7 @@ function InputView({
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insetsBottom + spacing[5] }]}>
+      <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
         <CTA
           variant="amber"
           onPress={onSubmit}

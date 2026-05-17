@@ -1,52 +1,95 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, BackBtn, CTA, Eyebrow, IconBtn } from '@/components/ui';
-import { Bottle, type BottleTone } from '@/components/illustrations';
+import { Bottle } from '@/components/illustrations';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import {
+  CATEGORY_LABEL,
+  CATEGORY_TO_BOTTLE_TONE,
+  LEVEL_LABEL,
+  LEVEL_TO_RATIO,
+} from '@/utils/domainMappers';
+import type { InventoryItemDetailResponse, LevelStatus } from '@/types/inventory';
+import { parseApiError } from '@/utils/parseApiError';
 
-interface BottleDetail {
-  id: string;
-  name: string;
-  origin: string;
-  category: string;
-  tone: BottleTone;
-  level: number;
-  volume: number;
-  abv: number;
-  label: string;
-  notes: string[];
-  purchased: string;
-  opened: string;
-}
+/** "한 잔" 버튼: 다음 단계로 잔량 감소 (FULL→HALF→LOW, LOW는 LOW 유지) */
+const nextLowerLevel: Record<LevelStatus, LevelStatus> = {
+  FULL: 'HALF',
+  HALF: 'LOW',
+  LOW: 'LOW',
+};
 
-const MOCK: BottleDetail = {
-  id: 'test-id',
-  name: 'Lagavulin 16',
-  origin: 'Islay · Scotland',
-  category: '싱글몰트 위스키',
-  tone: 'amber',
-  level: 0.42,
-  volume: 700,
-  abv: 43,
-  label: 'LAGAVULIN',
-  notes: ['스모키', '피트', '바닐라', '해풍'],
-  purchased: '2025년 11월 3일',
-  opened: '2025년 12월 18일',
+const formatDate = (iso?: string | null) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 export default function BottleDetailScreen() {
-  const { id: _id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [item, setItem] = useState<BottleDetail>(MOCK);
+  const [item, setItem] = useState<InventoryItemDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  const drink = () => {
-    setItem((prev) => ({ ...prev, level: Math.max(0, prev.level - 0.1) }));
+  const fetchDetail = useCallback(async () => {
+    if (!BACKEND_ENABLED || !id) return;
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) return;
+    try {
+      const res = await inventoryApi.getById(numericId);
+      setItem(res.data);
+    } catch (err) {
+      Alert.alert('불러오기 실패', parseApiError(err).message);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchDetail().finally(() => setLoading(false));
+  }, [fetchDetail]);
+
+  const drink = async () => {
+    if (!item || updating) return;
+    const next = nextLowerLevel[item.levelStatus];
+    if (next === item.levelStatus) {
+      Alert.alert('남은 양 없음', '이미 가장 낮은 단계입니다.');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const res = await inventoryApi.updateLevel(item.id, { levelStatus: next });
+      setItem(res.data);
+    } catch (err) {
+      Alert.alert('업데이트 실패', parseApiError(err).message);
+    } finally {
+      setUpdating(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.amber[500]} />
+      </View>
+    );
+  }
+
+  if (!item) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>보틀 정보를 찾을 수 없습니다.</Text>
+      </View>
+    );
+  }
+
+  const tone = CATEGORY_TO_BOTTLE_TONE[item.category];
+  const level = LEVEL_TO_RATIO[item.levelStatus];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="bottle-detail-screen">
@@ -69,72 +112,94 @@ export default function BottleDetailScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 96 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero card with Bottle */}
         <View style={styles.heroCard}>
-          <Bottle tone={item.tone} level={item.level} height={230} label={item.label} />
+          <Bottle tone={tone} level={level} height={230} label={item.name.slice(0, 12)} />
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.origin}>{item.origin}</Text>
+          {/* 원산지가 있으면 우선 표시. 없으면 카테고리 라벨로 폴백. */}
+          <Text style={styles.origin}>{item.origin ?? CATEGORY_LABEL[item.category]}</Text>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.cat}>{item.category}</Text>
+          <Text style={styles.cat}>
+            {CATEGORY_LABEL[item.category]} · 잔량 {LEVEL_LABEL[item.levelStatus]}
+            {item.isOpened ? ' · 개봉됨' : ''}
+          </Text>
 
-          {/* Stats row */}
           <View style={styles.statsRow}>
-            {[
-              {
-                k: '남은 양',
-                v: `${Math.round(item.level * 100)}%`,
-                sub: `${Math.round(item.volume * item.level)}ml`,
-              },
-              { k: '용량', v: `${item.volume}`, sub: 'ml' },
-              { k: 'ABV', v: `${item.abv}`, sub: 'alcohol' },
-            ].map((s, i) => (
-              <View key={s.k} style={[styles.statCol, i < 2 && styles.statColBorder]}>
-                <Text style={styles.statK}>{s.k}</Text>
-                <Text style={styles.statV}>{s.v}</Text>
-                <Text style={styles.statSub}>{s.sub}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Tasting notes */}
-          <View style={styles.section}>
-            <Eyebrow>TASTING NOTES</Eyebrow>
-            <View style={styles.notesRow}>
-              {item.notes.map((n) => (
-                <View key={n} style={styles.notePill}>
-                  <Text style={styles.notePillText}>{n}</Text>
-                </View>
-              ))}
+            <View style={[styles.statCol, styles.statColBorder]}>
+              <Text style={styles.statK}>남은 양</Text>
+              <Text style={styles.statV}>{LEVEL_LABEL[item.levelStatus]}</Text>
+              <Text style={styles.statSub}>{Math.round(level * 100)}%</Text>
+            </View>
+            <View style={[styles.statCol, styles.statColBorder]}>
+              <Text style={styles.statK}>용량</Text>
+              <Text style={styles.statV}>{item.capacityMl ?? '—'}</Text>
+              <Text style={styles.statSub}>ml</Text>
+            </View>
+            <View style={styles.statCol}>
+              <Text style={styles.statK}>ABV</Text>
+              <Text style={styles.statV}>{item.abv ?? '—'}</Text>
+              <Text style={styles.statSub}>alcohol</Text>
             </View>
           </View>
 
-          {/* Timeline */}
+          {/* 테이스팅 노트 (BE PR #20). "," 또는 "·"로 split해 칩 표시. */}
+          {item.tastingNotes ? (
+            <View style={styles.section}>
+              <Eyebrow>TASTING NOTES</Eyebrow>
+              <View style={styles.notesRow}>
+                {item.tastingNotes
+                  .split(/[,·]/)
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .map((note) => (
+                    <View key={note} style={styles.notePill}>
+                      <Text style={styles.notePillText}>{note}</Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.section}>
             <Eyebrow>TIMELINE</Eyebrow>
             <View style={styles.timeline}>
-              <TimelineRow label="구매" date={item.purchased} />
-              <TimelineRow label="개봉" date={item.opened} />
-              <TimelineRow label="예상 완료" date="약 6주 후" muted />
+              <TimelineRow
+                label="구매"
+                date={item.purchasedAt ? formatDate(item.purchasedAt) : '—'}
+                muted={!item.purchasedAt}
+              />
+              <TimelineRow label="등록" date={formatDate(item.createdAt)} />
+              <TimelineRow label="개봉" date={formatDate(item.openedAt)} muted={!item.openedAt} />
+              <TimelineRow
+                label="유통기한"
+                date={item.dDay != null ? `D-${item.dDay}` : '여유'}
+                muted={item.expiryStatus === 'UNOPENED'}
+              />
+              {item.purchasePlace ? (
+                <TimelineRow label="구매처" date={item.purchasePlace} />
+              ) : null}
             </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* Bottom action bar */}
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + spacing[4] }]}>
         <Pressable
           onPress={drink}
-          style={({ pressed }) => [styles.secondaryBtn, pressed && styles.btnPressed]}
+          disabled={updating}
+          style={({ pressed }) => [
+            styles.secondaryBtn,
+            (pressed || updating) && styles.btnPressed,
+          ]}
           testID="bottle-detail-drink-button"
         >
-          <Text style={styles.secondaryBtnText}>한 잔</Text>
+          <Text style={styles.secondaryBtnText}>{updating ? '업데이트 중' : '한 잔'}</Text>
         </Pressable>
         <View style={styles.actionCtaWrap}>
           <CTA
             variant="amber"
-            onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: 'test-id' } })}
+            onPress={() => router.push('/(tabs)/recipes')}
             testID="bottle-detail-make-button"
           >
             이 술로 만들기
@@ -208,6 +273,12 @@ const timelineStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper[50] },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  errorText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+  },
   scroll: { paddingBottom: spacing[6] },
   heroCard: {
     marginHorizontal: spacing[5],

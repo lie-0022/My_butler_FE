@@ -1,77 +1,36 @@
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, Chip, IconBtn } from '@/components/ui';
-import { Bottle, CocktailGlass, type BottleTone } from '@/components/illustrations';
+import { CocktailGlass, type BottleTone } from '@/components/illustrations';
+import { postApi } from '@/api/post';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import type { PostSortKey, PostSummaryResponse } from '@/types/post';
 
-type GlassToneCompat = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
-const fallbackTone = (t: BottleTone): GlassToneCompat =>
-  t === 'amber' || t === 'clear' || t === 'red' ? t : 'amber';
-
-interface Post {
-  id: string;
-  user: string;
-  handle: string;
-  avatar: BottleTone; // 그라데이션 톤 매핑
-  time: string;
-  type: 'RECIPE' | 'HOME BAR' | 'REVIEW';
-  title: string;
-  body: string;
-  bottles?: boolean;
-  tone?: BottleTone;
-  likes: number;
-  comments: number;
-}
-
-// 작업 18에서 실제 피드 API로 교체.
-const MOCK_POSTS: Post[] = [
-  {
-    id: '1',
-    user: '바텐더 김',
-    handle: '@bartender_kim',
-    avatar: 'amber',
-    time: '2h',
-    type: 'RECIPE',
-    title: 'Oaxacan Old Fashioned',
-    body: '메즈칼로 스모키함을 한층 더. 토요일 밤에 완벽한 한 잔.',
-    tone: 'amber',
-    likes: 124,
-    comments: 18,
-  },
-  {
-    id: '2',
-    user: '혜진',
-    handle: '@hyejin_pour',
-    avatar: 'clear',
-    time: '5h',
-    type: 'HOME BAR',
-    title: '드디어 선반이 찼어요',
-    body: '3년 걸렸네요. 다음은 뭘 들여야 할까요?',
-    bottles: true,
-    likes: 89,
-    comments: 34,
-  },
-  {
-    id: '3',
-    user: '민수',
-    handle: '@minsu.drinks',
-    avatar: 'green',
-    time: '1d',
-    type: 'REVIEW',
-    title: 'Yamazaki 12 — 드디어 영접',
-    body: '생각보다 섬세하고 과일향이 확실했어요. 점수 8.5.',
-    tone: 'amber',
-    likes: 203,
-    comments: 42,
-  },
+const FILTERS: { label: string; sort: PostSortKey }[] = [
+  { label: 'All', sort: 'LATEST' },
+  { label: '인기', sort: 'POPULAR' },
 ];
 
-const FILTERS = ['All', '팔로잉', '레시피', '리뷰', '홈바'];
+/** username 첫 글자 hash → 아바타 그라데이션 톤 결정 (시각적 다양성용) */
+const tones: BottleTone[] = ['amber', 'clear', 'green', 'red'];
+const pickAvatarTone = (username: string): BottleTone => {
+  const code = username.charCodeAt(0) || 0;
+  return tones[code % tones.length] ?? 'amber';
+};
 
 const AVATAR_GRADIENTS: Record<BottleTone, [string, string]> = {
   amber: ['#e4a83c', '#6d4410'],
@@ -81,10 +40,51 @@ const AVATAR_GRADIENTS: Record<BottleTone, [string, string]> = {
   blue: ['#3a5a7a', '#16263e'],
 };
 
+const timeAgo = (iso: string): string => {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diffMs / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.round(h / 24);
+  return `${d}d`;
+};
+
 export default function FeedTabScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState<PostSortKey>('LATEST');
+  const [posts, setPosts] = useState<PostSummaryResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchFeed = useCallback(async () => {
+    if (!BACKEND_ENABLED) return;
+    try {
+      const res = await postApi.getFeed({ sort: filter, page: 0, size: 20 });
+      setPosts(res.data.content);
+    } catch {
+      /* noop */
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    setLoading(true);
+    void fetchFeed().finally(() => setLoading(false));
+  }, [fetchFeed]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!loading) void fetchFeed();
+    }, [fetchFeed, loading]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchFeed();
+    setRefreshing(false);
+  }, [fetchFeed]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-feed-screen">
@@ -108,8 +108,8 @@ export default function FeedTabScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -117,95 +117,101 @@ export default function FeedTabScreen() {
         >
           {FILTERS.map((f) => (
             <Chip
-              key={f}
-              active={f === filter}
-              onPress={() => setFilter(f)}
-              testID={`feed-filter-${f}`}
+              key={f.label}
+              active={f.sort === filter}
+              onPress={() => setFilter(f.sort)}
+              testID={`feed-filter-${f.label}`}
             >
-              {f}
+              {f.label}
             </Chip>
           ))}
         </ScrollView>
 
-        {/* Posts */}
-        <View style={styles.postsList}>
-          {MOCK_POSTS.map((p) => (
-            <Pressable
-              key={p.id}
-              onPress={() => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
-              testID={`feed-post-${p.id}`}
-              style={({ pressed }) => [styles.post, pressed && styles.postPressed]}
-            >
-              {/* Header */}
-              <View style={styles.postHeader}>
-                <LinearGradient
-                  colors={AVATAR_GRADIENTS[p.avatar]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatar}
-                />
-                <View style={styles.postUser}>
-                  <Text style={styles.postUserName}>{p.user}</Text>
-                  <Text style={styles.postUserHandle}>
-                    {p.handle} · {p.time}
-                  </Text>
-                </View>
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{p.type}</Text>
-                </View>
-              </View>
-
-              {/* Visual */}
-              <View style={styles.visual}>
-                {p.bottles ? (
-                  <View style={styles.bottleRow}>
-                    {(['amber', 'clear', 'green', 'amber', 'red'] as BottleTone[]).map((tn, j) => (
-                      <View key={j} style={styles.bottleSlot}>
-                        <Bottle tone={tn} height={70 + (j % 2 === 0 ? 8 : 0)} level={0.7} />
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.amber[500]} />
+          </View>
+        ) : posts.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>아직 게시물이 없어요</Text>
+            <Text style={styles.emptySub}>가장 먼저 게시물을 올려보세요.</Text>
+          </View>
+        ) : (
+          <View style={styles.postsList}>
+            {posts.map((p) => {
+              const tone = pickAvatarTone(p.author.username);
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() =>
+                    router.push({ pathname: '/post/[id]', params: { id: String(p.id) } })
+                  }
+                  testID={`feed-post-${p.id}`}
+                  style={({ pressed }) => [styles.post, pressed && styles.postPressed]}
+                >
+                  <View style={styles.postHeader}>
+                    <LinearGradient
+                      colors={AVATAR_GRADIENTS[tone]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.avatar}
+                    />
+                    <View style={styles.postUser}>
+                      <Text style={styles.postUserName}>{p.author.username}</Text>
+                      <Text style={styles.postUserHandle}>
+                        @{p.author.username} · {timeAgo(p.createdAt)}
+                      </Text>
+                    </View>
+                    {p.isArGenerated ? (
+                      <View style={styles.typeBadge}>
+                        <Text style={styles.typeBadgeText}>AR</Text>
                       </View>
-                    ))}
+                    ) : null}
                   </View>
-                ) : (
-                  <View style={styles.singleBottle}>
-                    <CocktailGlass style="rocks" tone={fallbackTone(p.tone ?? 'amber')} size="md" />
+
+                  <View style={styles.visual}>
+                    <CocktailGlass style="rocks" tone="amber" size="md" />
                   </View>
-                )}
-              </View>
 
-              {/* Body */}
-              <Text style={styles.postTitle}>{p.title}</Text>
-              <Text style={styles.postBody}>{p.body}</Text>
+                  {p.recipeTag ? (
+                    <Text style={styles.postTitle}>{p.recipeTag.recipeName}</Text>
+                  ) : null}
+                  {p.caption ? (
+                    <Text style={styles.postBody} numberOfLines={3}>
+                      {p.caption}
+                    </Text>
+                  ) : null}
 
-              {/* Actions */}
-              <View style={styles.actions}>
-                <View style={styles.actionItem}>
-                  <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-                    <Path
-                      d="M7 12s-5-3-5-7a3 3 0 015-2 3 3 0 015 2c0 4-5 7-5 7z"
-                      stroke={colors.paper[400]}
-                      strokeWidth={1.6}
-                    />
-                  </Svg>
-                  <Text style={styles.actionText}>{p.likes}</Text>
-                </View>
-                <View style={styles.actionItem}>
-                  <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-                    <Path
-                      d="M2 3h10v7H5l-3 3V3z"
-                      stroke={colors.paper[400]}
-                      strokeWidth={1.6}
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                  <Text style={styles.actionText}>{p.comments}</Text>
-                </View>
-                <Text style={styles.actionMore}>
-                  {p.type === 'RECIPE' ? '내 바로 저장 →' : '자세히 →'}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+                  <View style={styles.actions}>
+                    <View style={styles.actionItem}>
+                      <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                        <Path
+                          d="M7 12s-5-3-5-7a3 3 0 015-2 3 3 0 015 2c0 4-5 7-5 7z"
+                          stroke={p.isLiked ? colors.semantic.danger : colors.paper[400]}
+                          fill={p.isLiked ? colors.semantic.danger : 'none'}
+                          strokeWidth={1.6}
+                        />
+                      </Svg>
+                      <Text style={styles.actionText}>{p.likeCount}</Text>
+                    </View>
+                    <View style={styles.actionItem}>
+                      <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                        <Path
+                          d="M2 3h10v7H5l-3 3V3z"
+                          stroke={colors.paper[400]}
+                          strokeWidth={1.6}
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                      <Text style={styles.actionText}>{p.commentCount}</Text>
+                    </View>
+                    <Text style={styles.actionMore}>자세히 →</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -224,6 +230,26 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     paddingHorizontal: spacing[5],
     paddingBottom: spacing[3],
+  },
+  center: {
+    paddingVertical: spacing[7],
+    alignItems: 'center',
+  },
+  empty: {
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[7],
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.serif.semibold,
+    fontSize: fontSize.lg,
+    color: colors.ink[900],
+  },
+  emptySub: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.paper[400],
   },
   postsList: {
     paddingHorizontal: spacing[5],
@@ -283,18 +309,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4],
     alignItems: 'center',
   },
-  bottleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: -4,
-  },
-  bottleSlot: {
-    marginRight: -4,
-  },
-  singleBottle: {
-    alignItems: 'center',
-  },
   postTitle: {
     fontFamily: fontFamily.serif.semibold,
     fontSize: fontSize.lg,
@@ -321,7 +335,7 @@ const styles = StyleSheet.create({
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1] + 1, // 5
+    gap: spacing[1] + 1,
   },
   actionText: {
     fontFamily: fontFamily.sans.regular,

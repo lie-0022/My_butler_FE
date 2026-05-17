@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { userApi } from '@/api/user';
+import type { ExperienceLevel, TastePreference } from '@/types/user';
 import { AppBar, BackBtn, Chip, CTA, Eyebrow, ProgressDots } from '@/components/ui';
 import { Bottle, type BottleTone } from '@/components/illustrations';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
@@ -17,6 +18,11 @@ interface TasteCategory {
   tone: BottleTone;
 }
 
+/**
+ * 디자인의 8개 카드는 술 카테고리(위스키/진/럼…)이지만 BE의 UserPreference에는
+ * "선호 카테고리" 필드가 없음. 현 단계에서는 화면 표시만 하고 BE 전송에는 사용하지 않는다.
+ * 추후 BE에 preferredCategories 컬럼 추가 시 매핑 위치.
+ */
 const TASTES: TasteCategory[] = [
   { id: 'whisky', label: '위스키', tone: 'amber' },
   { id: 'gin', label: '진', tone: 'clear' },
@@ -28,11 +34,27 @@ const TASTES: TasteCategory[] = [
   { id: 'beer', label: '맥주', tone: 'amber' },
 ];
 
-const FLAVORS = ['스모키', '드라이', '스위트', '프루티', '허벌', '스파이시', '시트러스'];
+/**
+ * 디자인 7종 flavor → BE TastePreference 7개 1:1 매핑.
+ * BE PR #20에서 SMOKY/SPICY/FRUITY/CITRUS/DRY 5개 enum이 추가되어
+ * 더 이상 dedupe 손실 없음. 허벌은 BE enum에 없어서 LIGHT로 매핑 유지.
+ */
+const FLAVOR_TO_TASTE: Record<string, TastePreference> = {
+  스위트: 'SWEET',
+  드라이: 'DRY',
+  스모키: 'SMOKY',
+  스파이시: 'SPICY',
+  프루티: 'FRUITY',
+  시트러스: 'CITRUS',
+  허벌: 'LIGHT',
+};
+const FLAVORS = Object.keys(FLAVOR_TO_TASTE);
 
 export default function OnboardingStep2Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // step1에서 넘어온 experienceLevel
+  const params = useLocalSearchParams<{ experienceLevel?: ExperienceLevel }>();
   const [selectedTastes, setSelectedTastes] = useState<string[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -54,9 +76,19 @@ export default function OnboardingStep2Screen() {
     }
     setSubmitting(true);
     try {
+      // flavor 칩 → TastePreference dedupe.
+      // BE 검증 @NotEmpty라 빈 배열이면 fallback으로 SWEET 1개.
+      const mapped = new Set<TastePreference>();
+      selectedFlavors.forEach((f) => {
+        const enumValue = FLAVOR_TO_TASTE[f];
+        if (enumValue) mapped.add(enumValue);
+      });
+      const tastePreferences: TastePreference[] =
+        mapped.size > 0 ? Array.from(mapped) : ['SWEET'];
+
       await userApi.savePreferences({
-        categories: selectedTastes,
-        preferenceDetails: selectedFlavors.length > 0 ? { flavors: selectedFlavors } : undefined,
+        tastePreferences,
+        experienceLevel: params.experienceLevel,
       });
       router.push('/(onboarding)/step3');
     } catch (error) {

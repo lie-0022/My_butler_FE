@@ -1,15 +1,42 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, BackBtn, Chip, CTA, Eyebrow, Input } from '@/components/ui';
 import { Bottle, type BottleTone } from '@/components/illustrations';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { parseApiError } from '@/utils/parseApiError';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
+import type { Category } from '@/types/inventory';
 
-const CATEGORIES = ['위스키', '진', '럼', '보드카', '리큐르', '와인', '맥주', '기타'];
+/** 디자인 한국어 카테고리 → BE Category enum. 와인/맥주는 BE에 enum 없음 → OTHER. */
+const CATEGORY_MAP: Record<string, Category> = {
+  위스키: 'WHISKEY',
+  진: 'GIN',
+  럼: 'RUM',
+  보드카: 'VODKA',
+  테킬라: 'TEQUILA',
+  리큐르: 'LIQUEUR',
+  와인: 'OTHER',
+  맥주: 'OTHER',
+  기타: 'OTHER',
+};
+
+const CATEGORIES = Object.keys(CATEGORY_MAP);
 const TONES: { id: BottleTone; label: string }[] = [
   { id: 'amber', label: 'Amber' },
   { id: 'clear', label: 'Clear' },
@@ -25,10 +52,44 @@ export default function BottleNewScreen() {
   const [tone, setTone] = useState<BottleTone>('amber');
   const [volume, setVolume] = useState('700');
   const [abv, setAbv] = useState('43');
+  // BE PR #20 신규 필드. 디자인 시안 없어서 단순 텍스트 입력만 추가.
+  const [tastingNotes, setTastingNotes] = useState('');
+  const [purchasedAt, setPurchasedAt] = useState(''); // "YYYY-MM-DD"
+  const [purchasePlace, setPurchasePlace] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insets.bottom + spacing[5];
 
-  const handleSubmit = () => {
-    // UI 단계: mock 추가만 하고 뒤로. 작업 18에서 실제 API 연결.
-    router.back();
+  const handleSubmit = async () => {
+    if (!BACKEND_ENABLED) {
+      router.back();
+      return;
+    }
+    if (!name.trim()) return;
+    setSubmitting(true);
+    try {
+      const beCategory = CATEGORY_MAP[category] ?? 'OTHER';
+      // 빈 문자열은 undefined로 보내서 BE validation 통과 + null 저장.
+      const trim = (v: string) => (v.trim() ? v.trim() : undefined);
+      await inventoryApi.create({
+        name: name.trim(),
+        category: beCategory,
+        capacityMl: volume ? Number(volume) : undefined,
+        abv: abv ? Number(abv) : undefined,
+        levelStatus: 'FULL',
+        isOpened: false,
+        tastingNotes: trim(tastingNotes),
+        purchasedAt: trim(purchasedAt),
+        purchasePlace: trim(purchasePlace),
+        origin: trim(origin),
+      });
+      router.back();
+    } catch (err) {
+      Alert.alert('등록 실패', parseApiError(err).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -143,16 +204,52 @@ export default function BottleNewScreen() {
               />
             </View>
           </View>
+
+          {/*
+           * BE PR #20 신규 필드 4종 — 디자인 시안 없음.
+           * MVP는 단순 텍스트 입력으로 받아두고, 디자인 받으면 칩/날짜피커로 교체.
+           * NEEDS_DESIGN.md "보틀 추가/수정 폼" 항목 참조.
+           */}
+          <Input
+            label="원산지/증류소 (선택)"
+            placeholder="예: Islay · Scotland"
+            value={origin}
+            onChangeText={setOrigin}
+            testID="bottle-new-origin-input"
+          />
+          <Input
+            label="테이스팅 노트 (선택, 쉼표로 구분)"
+            placeholder="예: 스모키, 피트, 바닐라"
+            value={tastingNotes}
+            onChangeText={setTastingNotes}
+            testID="bottle-new-tasting-notes-input"
+          />
+          <Input
+            label="구매일 (선택, YYYY-MM-DD)"
+            placeholder="2026-05-18"
+            value={purchasedAt}
+            onChangeText={setPurchasedAt}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+            testID="bottle-new-purchased-at-input"
+          />
+          <Input
+            label="구매처 (선택)"
+            placeholder="예: 신세계 와인앤스피릿"
+            value={purchasePlace}
+            onChangeText={setPurchasePlace}
+            testID="bottle-new-purchase-place-input"
+          />
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[5] }]}>
+        <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
           <CTA
             variant="amber"
             onPress={handleSubmit}
-            disabled={!name.trim()}
+            disabled={!name.trim() || submitting}
             testID="bottle-new-submit-button"
           >
-            카운터에 추가
+            {submitting ? '등록 중...' : '카운터에 추가'}
           </CTA>
         </View>
       </KeyboardAvoidingView>

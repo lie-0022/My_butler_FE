@@ -1,58 +1,85 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, BackBtn, CTA, Eyebrow, IconBtn } from '@/components/ui';
-import { CocktailGlass, IngChip, type IngChipType } from '@/components/illustrations';
+import { CocktailGlass, IngChip, type IngChipType , BottleTone } from '@/components/illustrations';
+import { recipeApi } from '@/api/recipe';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { parseApiError } from '@/utils/parseApiError';
+import type { BaseSpirit, RecipeDetailResponse } from '@/types/recipe';
 
-interface Ingredient {
-  name: string;
-  amt: string;
-  unit: string;
-  have: boolean;
-  kind: IngChipType;
-  note?: string;
-}
+type GlassTone = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
 
-interface Step {
-  h: string;
-  d: string;
-}
+const baseSpiritToTone = (s?: BaseSpirit | null): GlassTone => {
+  if (s === 'GIN' || s === 'VODKA' || s === 'TEQUILA') return 'clear';
+  if (s === 'LIQUEUR') return 'red';
+  return 'amber';
+};
 
-const RECIPE = {
-  name: 'Smoky Old Fashioned',
-  sub: 'a warm pour for cold nights',
-  abv: 28,
-  time: 3,
-  difficulty: '초급',
-  story:
-    '클래식 Old Fashioned에 피티한 싱글몰트 한 방울을 더하면, 잔 위로 모닥불 향이 피어오릅니다.',
-  ingredients: [
-    { name: 'Bourbon Whisky', amt: '60', unit: 'ml', have: true, kind: 'lemon' },
-    { name: 'Lagavulin 16', amt: '5', unit: 'ml', have: true, kind: 'lemon', note: 'float' },
-    { name: 'Demerara Syrup', amt: '7.5', unit: 'ml', have: true, kind: 'sugar' },
-    { name: 'Angostura Bitters', amt: '2', unit: 'dashes', have: true, kind: 'cherry' },
-    { name: 'Orange Peel', amt: '1', unit: '', have: true, kind: 'orange' },
-  ] as Ingredient[],
-  steps: [
-    { h: '셰이킹 대신 스터링', d: '믹싱 글라스에 얼음과 시럽, 비터스를 넣고 스터' },
-    { h: '버번을 더하기', d: '버번 60ml를 추가 후 30초간 차갑게 저어주세요' },
-    { h: '로우 글라스로', d: '큰 얼음 한 덩이가 놓인 로우 글라스에 따르기' },
-    { h: '스모크 플로트', d: '라가불린 5ml를 스푼 위로 천천히 띄우기' },
-    { h: '오렌지 오일', d: '껍질을 짜 향을 낸 뒤 잔에 걸치기' },
-  ] as Step[],
+/** 재료명에서 대략적 IngChip 종류 추정 (BE에 카테고리 컬럼 없음). */
+const guessIngChip = (name: string): IngChipType => {
+  const n = name.toLowerCase();
+  if (n.includes('lemon') || n.includes('레몬')) return 'lemon';
+  if (n.includes('lime') || n.includes('라임')) return 'lime';
+  if (n.includes('orange') || n.includes('오렌지')) return 'orange';
+  if (n.includes('cherry') || n.includes('체리') || n.includes('bitter')) return 'cherry';
+  if (n.includes('sugar') || n.includes('syrup') || n.includes('시럽') || n.includes('설탕'))
+    return 'sugar';
+  if (n.includes('salt') || n.includes('소금')) return 'salt';
+  return 'lemon';
+};
+
+const difficultyLabel = (d: number): string => {
+  if (d <= 1) return '초급';
+  if (d === 2) return '중급';
+  return '고급';
 };
 
 export default function RecipeDetailScreen() {
-  const { id: _id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [recipe, setRecipe] = useState<RecipeDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [favorited, setFavorited] = useState(false);
 
-  const missingCount = RECIPE.ingredients.filter((i) => !i.have).length;
+  const fetchDetail = useCallback(async () => {
+    if (!BACKEND_ENABLED || !id) return;
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) return;
+    try {
+      const res = await recipeApi.getById(numericId);
+      setRecipe(res.data);
+    } catch (err) {
+      Alert.alert('레시피 불러오기 실패', parseApiError(err).message);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchDetail().finally(() => setLoading(false));
+  }, [fetchDetail]);
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.amber[500]} />
+      </View>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>레시피 정보를 찾을 수 없습니다.</Text>
+      </View>
+    );
+  }
+
+  const tone = baseSpiritToTone(recipe.baseSpirit);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="recipe-detail-screen">
@@ -80,24 +107,22 @@ export default function RecipeDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>CLASSIC · REIMAGINED</Text>
-          <Text style={styles.title}>
-            Smoky{'\n'}
-            <Text style={styles.titleAccent}>Old Fashioned</Text>
-          </Text>
-          <Text style={styles.subtitle}>{RECIPE.sub}</Text>
+          <Text style={styles.eyebrow}>{recipe.tasteTags.join(' · ') || 'COCKTAIL'}</Text>
+          <Text style={styles.title}>{recipe.name}</Text>
+          {recipe.description ? (
+            <Text style={styles.subtitle}>{recipe.description}</Text>
+          ) : null}
         </View>
 
         <View style={styles.glassCard}>
-          <CocktailGlass style="rocks" tone="amber" size="lg" />
+          <CocktailGlass style="rocks" tone={tone} size="lg" />
         </View>
 
-        {/* Stats */}
         <View style={styles.stats}>
           {[
-            { k: 'ABV', v: `${RECIPE.abv}%` },
-            { k: 'TIME', v: `${RECIPE.time} min` },
-            { k: 'LEVEL', v: RECIPE.difficulty },
+            { k: 'ABV', v: recipe.abv != null ? `${recipe.abv}%` : '—' },
+            { k: 'TIME', v: recipe.estimatedMinutes ? `${recipe.estimatedMinutes} min` : '—' },
+            { k: 'LEVEL', v: difficultyLabel(recipe.difficulty) },
           ].map((s, i) => (
             <View key={s.k} style={[styles.statCol, i < 2 && styles.statColBorder]}>
               <Text style={styles.statK}>{s.k}</Text>
@@ -107,82 +132,62 @@ export default function RecipeDetailScreen() {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.story}>&ldquo;{RECIPE.story}&rdquo;</Text>
-
-          {missingCount > 0 ? (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/recipe/[id]/missing',
-                  params: { id: 'test-id' },
-                })
-              }
-              testID="recipe-detail-missing-link"
-              style={styles.missingLink}
-            >
-              <Text style={styles.missingLinkText}>재료 {missingCount}개 부족 · 자세히 →</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/recipe/[id]/missing',
+                params: { id: String(recipe.id) },
+              })
+            }
+            testID="recipe-detail-missing-link"
+            style={styles.missingLink}
+          >
+            <Text style={styles.missingLinkText}>내 인벤토리와 비교하기 →</Text>
+          </Pressable>
 
           <Eyebrow>INGREDIENTS · 1 SERVE</Eyebrow>
           <View style={styles.ingList}>
-            {RECIPE.ingredients.map((ing, i) => (
+            {recipe.ingredients.map((ing, i) => (
               <View
-                key={ing.name}
-                style={[styles.ingRow, i < RECIPE.ingredients.length - 1 && styles.ingRowBorder]}
+                key={ing.id}
+                style={[
+                  styles.ingRow,
+                  i < recipe.ingredients.length - 1 && styles.ingRowBorder,
+                ]}
               >
-                <IngChip type={ing.kind} size="sm" />
+                <IngChip type={guessIngChip(ing.name)} size="sm" />
                 <View style={styles.ingMeta}>
-                  <Text style={styles.ingName}>
-                    {ing.name}
-                    {ing.note ? (
-                      <Text style={styles.ingNote}> {ing.note.toUpperCase()}</Text>
-                    ) : null}
-                  </Text>
+                  <Text style={styles.ingName}>{ing.name}</Text>
                 </View>
                 <Text style={styles.ingAmt}>
-                  {ing.amt}
-                  <Text style={styles.ingUnit}> {ing.unit}</Text>
+                  {ing.amount ?? ''}
+                  <Text style={styles.ingUnit}> {ing.unit ?? ''}</Text>
                 </Text>
-                <View
-                  style={[
-                    styles.haveDot,
-                    { backgroundColor: ing.have ? colors.semanticBg.ok : colors.semanticBg.danger },
-                  ]}
-                >
-                  {ing.have ? (
-                    <Svg width={10} height={10} viewBox="0 0 10 10">
-                      <Path
-                        d="M2 5l2 2 4-4"
-                        stroke={colors.semantic.ok}
-                        strokeWidth={1.8}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        fill="none"
-                      />
-                    </Svg>
-                  ) : (
-                    <Text style={styles.haveDotMiss}>!</Text>
-                  )}
-                </View>
               </View>
             ))}
+            {recipe.ingredients.length === 0 ? (
+              <Text style={styles.emptyMsg}>재료 정보가 없습니다.</Text>
+            ) : null}
           </View>
 
           <View style={styles.methodSection}>
             <Eyebrow>METHOD</Eyebrow>
             <View style={styles.steps}>
-              {RECIPE.steps.map((s, i) => (
-                <View key={i} style={styles.step}>
+              {recipe.steps.map((s, i) => (
+                <View key={s.id} style={styles.step}>
                   <View style={styles.stepNum}>
-                    <Text style={styles.stepNumText}>{String(i + 1).padStart(2, '0')}</Text>
+                    <Text style={styles.stepNumText}>
+                      {String(i + 1).padStart(2, '0')}
+                    </Text>
                   </View>
                   <View style={styles.stepBody}>
-                    <Text style={styles.stepHeading}>{s.h}</Text>
-                    <Text style={styles.stepDesc}>{s.d}</Text>
+                    <Text style={styles.stepDesc}>{s.description}</Text>
                   </View>
                 </View>
               ))}
+              {recipe.steps.length === 0 ? (
+                <Text style={styles.emptyMsg}>조리 단계가 없습니다.</Text>
+              ) : null}
             </View>
           </View>
         </View>
@@ -195,10 +200,10 @@ export default function RecipeDetailScreen() {
         <View style={styles.actionCtaWrap}>
           <CTA
             variant="amber"
-            onPress={() => router.push('/_debug')}
+            onPress={() => router.back()}
             testID="recipe-detail-made-button"
           >
-            만드는 중 · 가이드 시작
+            만들기 완료
           </CTA>
         </View>
       </View>
@@ -208,6 +213,19 @@ export default function RecipeDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper[50] },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  errorText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+  },
+  emptyMsg: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.paper[400],
+    paddingVertical: spacing[4],
+    textAlign: 'center',
+  },
   scroll: { paddingBottom: spacing[6] },
   header: { paddingHorizontal: spacing[6], marginBottom: spacing[4] },
   eyebrow: {
@@ -224,11 +242,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     lineHeight: fontSize.h1 * 1.02,
     marginTop: spacing[2],
-  },
-  titleAccent: {
-    fontFamily: fontFamily.serif.regular,
-    color: colors.amber[500],
-    fontStyle: 'italic',
   },
   subtitle: {
     fontFamily: fontFamily.serif.regular,
@@ -272,18 +285,10 @@ const styles = StyleSheet.create({
     marginTop: spacing[1],
   },
   body: { paddingHorizontal: spacing[6] },
-  story: {
-    fontFamily: fontFamily.serif.regular,
-    fontSize: fontSize.md + 2,
-    color: colors.ink[800],
-    lineHeight: (fontSize.md + 2) * lineHeight.normal,
-    fontStyle: 'italic',
-    marginBottom: spacing[6],
-  },
   missingLink: {
     paddingVertical: spacing[3],
     paddingHorizontal: spacing[4],
-    backgroundColor: colors.semanticBg.danger,
+    backgroundColor: colors.amber[50],
     borderRadius: radius.md,
     marginBottom: spacing[5],
     alignItems: 'center',
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
   missingLinkText: {
     fontFamily: fontFamily.sans.semibold,
     fontSize: fontSize.sm,
-    color: colors.semantic.danger,
+    color: colors.amber[600],
   },
   ingList: { marginTop: spacing[3], marginBottom: spacing[7] },
   ingRow: {
@@ -304,23 +309,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.paper[200],
   },
-  ingChip: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.amber[100],
-  },
   ingMeta: { flex: 1, minWidth: 0 },
   ingName: {
     fontFamily: fontFamily.serif.semibold,
     fontSize: fontSize.md,
     color: colors.ink[900],
-  },
-  ingNote: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: fontSize.xxs,
-    color: colors.amber[500],
-    letterSpacing: 1.5,
   },
   ingAmt: {
     fontFamily: fontFamily.serif.bold,
@@ -334,24 +327,9 @@ const styles = StyleSheet.create({
     color: colors.paper[400],
     fontWeight: '500',
   },
-  haveDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  haveDotMiss: {
-    fontFamily: fontFamily.sans.semibold,
-    fontSize: fontSize.xs,
-    color: colors.semantic.danger,
-  },
   methodSection: { marginBottom: spacing[5] },
   steps: { marginTop: spacing[3], gap: spacing[4] },
-  step: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
+  step: { flexDirection: 'row', gap: spacing[3] },
   stepNum: {
     width: 32,
     height: 32,
@@ -366,17 +344,10 @@ const styles = StyleSheet.create({
     color: colors.amber[200],
   },
   stepBody: { flex: 1, paddingTop: spacing[1] },
-  stepHeading: {
-    fontFamily: fontFamily.serif.semibold,
-    fontSize: fontSize.md,
-    color: colors.ink[900],
-    letterSpacing: -0.16,
-  },
   stepDesc: {
     fontFamily: fontFamily.sans.regular,
     fontSize: fontSize.sm,
-    color: colors.paper[400],
-    marginTop: spacing[1],
+    color: colors.ink[800],
     lineHeight: fontSize.sm * lineHeight.normal,
   },
   actionBar: {

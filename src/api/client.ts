@@ -1,24 +1,29 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { keysToCamel, keysToSnake } from '../utils/caseConvert';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
 
 // SecureStore 키
 const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_COOKIE_KEY = 'refresh_token_cookie'; // 쿠키 값 수동 저장
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 export const tokenStorage = {
   getAccessToken: () => SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
   setAccessToken: (token: string) => SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token),
   removeAccessToken: () => SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
 
-  getRefreshCookie: () => SecureStore.getItemAsync(REFRESH_TOKEN_COOKIE_KEY),
-  setRefreshCookie: (cookie: string) => SecureStore.setItemAsync(REFRESH_TOKEN_COOKIE_KEY, cookie),
-  removeRefreshCookie: () => SecureStore.deleteItemAsync(REFRESH_TOKEN_COOKIE_KEY),
+  /**
+   * PR #18 이후 refresh_token이 응답 body로 내려옴 (이전엔 HttpOnly Cookie).
+   * 단순 SecureStore string 저장.
+   */
+  getRefreshToken: () => SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
+  setRefreshToken: (token: string) => SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token),
+  removeRefreshToken: () => SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
 
   clear: async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_COOKIE_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   },
 };
 
@@ -30,12 +35,19 @@ const apiClient = axios.create({
   },
 });
 
-// 요청 인터셉터: access token 자동 주입
+// 요청 인터셉터: access token 자동 주입 + body/params camelCase → snake_case 변환
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await tokenStorage.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // BE Jackson SNAKE_CASE 전략 대응. FormData/Blob는 caseConvert가 그대로 통과시킴.
+    if (config.data) {
+      config.data = keysToSnake(config.data);
+    }
+    if (config.params) {
+      config.params = keysToSnake(config.params);
     }
     return config;
   },
@@ -62,14 +74,9 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
 
 apiClient.interceptors.response.use(
   (response) => {
-    // login/register 응답에서 Set-Cookie 헤더의 refresh_token 추출 후 저장
-    const setCookie = response.headers['set-cookie'];
-    if (setCookie) {
-      const cookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
-      const match = cookieStr.match(/refresh_token=([^;]+)/);
-      if (match) {
-        tokenStorage.setRefreshCookie(match[1]);
-      }
+    // 응답 body snake_case → camelCase 변환 (모든 응답 공통)
+    if (response.data) {
+      response.data = keysToCamel(response.data);
     }
     return response;
   },
@@ -92,34 +99,25 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshCookie = await tokenStorage.getRefreshCookie();
-        if (!refreshCookie) throw new Error('No refresh token');
+        const refreshToken = await tokenStorage.getRefreshToken();
+        if (!refreshToken) throw new Error('No refresh token');
 
-        const refreshResponse = await axios.post(
-          `${BASE_URL}/api/v1/auth/refresh`,
-          {},
-          {
-            headers: {
-              Cookie: `refresh_token=${refreshCookie}; Path=/api/v1/auth/refresh`,
-            },
-          },
-        );
+        // raw axios로 호출 (apiClient 인터셉터의 401 재귀 회피).
+        // body로 snake_case 키 전송. 응답도 snake_case (인터셉터 통과 안 함).
+        const refreshResponse = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
 
-        const newAccessToken = refreshResponse.data?.data?.accessToken;
+        const newAccessToken: string | undefined =
+          refreshResponse.data?.data?.access_token ?? refreshResponse.data?.data?.accessToken;
+        const newRefreshToken: string | undefined =
+          refreshResponse.data?.data?.refresh_token ?? refreshResponse.data?.data?.refreshToken;
         if (!newAccessToken) throw new Error('No access token in refresh response');
 
         await tokenStorage.setAccessToken(newAccessToken);
-
-        // 새 refresh cookie 저장
-        const newCookieHeader = refreshResponse.headers['set-cookie'];
-        if (newCookieHeader) {
-          const cookieStr = Array.isArray(newCookieHeader)
-            ? newCookieHeader.join('; ')
-            : newCookieHeader;
-          const match = cookieStr.match(/refresh_token=([^;]+)/);
-          if (match) {
-            await tokenStorage.setRefreshCookie(match[1]);
-          }
+        // BE는 refresh rotation — 새 refresh도 같이 내려옴. 갱신 저장.
+        if (newRefreshToken) {
+          await tokenStorage.setRefreshToken(newRefreshToken);
         }
 
         processQueue(null, newAccessToken);

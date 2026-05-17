@@ -11,7 +11,7 @@ export default function OnboardingStep3Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const nickname = user?.name ?? '바텐더';
+  const nickname = user?.username ?? '바텐더';
 
   const goToBar = () => {
     router.replace('/(tabs)');
