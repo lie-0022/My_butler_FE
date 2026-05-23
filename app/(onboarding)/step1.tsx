@@ -3,23 +3,17 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'expo-router';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { userApi } from '@/api/user';
+import type { AgeGroup, ExperienceLevel } from '@/types/user';
 import { AppBar, BackBtn, Chip, CTA, Eyebrow, Input, ProgressDots } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
 import { parseApiError } from '@/utils/parseApiError';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 
 const LEVELS = ['입문', '즐김', '애호', '전문'] as const;
 type Level = (typeof LEVELS)[number];
@@ -67,6 +61,8 @@ export default function OnboardingStep1Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [submitting, setSubmitting] = useState(false);
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insets.bottom + spacing[5];
 
   const {
     control,
@@ -84,6 +80,34 @@ export default function OnboardingStep1Screen() {
     mode: 'onChange',
   });
 
+  /** 4단계 디자인 레벨 → BE 3단계 ExperienceLevel 매핑. */
+  const mapLevelToExperience = (level: Level): ExperienceLevel => {
+    switch (level) {
+      case '입문':
+        return 'BEGINNER';
+      case '즐김':
+      case '애호':
+        return 'INTERMEDIATE';
+      case '전문':
+        return 'ADVANCED';
+    }
+  };
+
+  /**
+   * 생일 → BE AgeGroup enum 4종 매핑.
+   * BE는 생년월일을 직접 저장하지 않고 ageGroup만 받음. UserService에서
+   * onboarding 완료 처리 조건이 (ageGroup != null && user_preferences 존재)이라
+   * step1에서 반드시 전송해야 한다.
+   * 만 19세 미만은 서비스 정책상 미성년 가입 제외 가정 → TWENTIES 폴백.
+   */
+  const computeAgeGroup = (birthYear: string): AgeGroup => {
+    const age = new Date().getFullYear() - Number(birthYear);
+    if (age >= 50) return 'FIFTIES_PLUS';
+    if (age >= 40) return 'FORTIES';
+    if (age >= 30) return 'THIRTIES';
+    return 'TWENTIES';
+  };
+
   const onSubmit = async (values: Step1Form) => {
     // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
     if (!BACKEND_ENABLED) {
@@ -92,14 +116,22 @@ export default function OnboardingStep1Screen() {
     }
     setSubmitting(true);
     try {
-      const birthDate = `${values.birthYear.padStart(4, '0')}-${values.birthMonth.padStart(2, '0')}-${values.birthDay.padStart(2, '0')}`;
-      // level은 백엔드 미지원 — 작업 18에서 협의 후 별도 필드로 정리. 현재는 gender placeholder.
+      // 1) 닉네임 → BE username 업데이트 (가입 시 자동 생성 username을 사용자 입력으로 교체).
+      await userApi.updateUsername({ username: values.nickname });
+
+      // 2) 생일 → ageGroup(BE onboarding 자동완료 조건) + birthDate(BE PR #20 정확값) 둘 다 전송.
+      const birthDate = `${values.birthYear}-${values.birthMonth.padStart(2, '0')}-${values.birthDay.padStart(2, '0')}`;
       await userApi.updateProfile({
-        name: values.nickname,
+        ageGroup: computeAgeGroup(values.birthYear),
         birthDate,
-        gender: 'OTHER',
       });
-      router.push('/(onboarding)/step2');
+
+      // 3) level은 step2의 savePreferences에 합쳐 보내야 함 → router param으로 전달.
+      const experienceLevel = mapLevelToExperience(values.level);
+      router.push({
+        pathname: '/(onboarding)/step2',
+        params: { experienceLevel },
+      });
     } catch (error) {
       Alert.alert('오류', parseApiError(error).message);
     } finally {
@@ -119,7 +151,7 @@ export default function OnboardingStep1Screen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 70 : 0}
       >
         <ScrollView
@@ -225,7 +257,7 @@ export default function OnboardingStep1Screen() {
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[5] }]}>
+        <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
           <CTA
             variant="amber"
             onPress={handleSubmit(onSubmit)}

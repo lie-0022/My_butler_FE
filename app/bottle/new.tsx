@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  KeyboardAvoidingView,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -10,14 +10,33 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, BackBtn, Chip, CTA, Eyebrow, Input } from '@/components/ui';
 import { Bottle, type BottleTone } from '@/components/illustrations';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { parseApiError } from '@/utils/parseApiError';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
+import type { Category } from '@/types/inventory';
 
-const CATEGORIES = ['위스키', '진', '럼', '보드카', '리큐르', '와인', '맥주', '기타'];
+/** 디자인 한국어 카테고리 → BE Category enum. 와인/맥주는 BE에 enum 없음 → OTHER. */
+const CATEGORY_MAP: Record<string, Category> = {
+  위스키: 'WHISKEY',
+  진: 'GIN',
+  럼: 'RUM',
+  보드카: 'VODKA',
+  테킬라: 'TEQUILA',
+  리큐르: 'LIQUEUR',
+  와인: 'OTHER',
+  맥주: 'OTHER',
+  기타: 'OTHER',
+};
+
+const CATEGORIES = Object.keys(CATEGORY_MAP);
 const TONES: { id: BottleTone; label: string }[] = [
   { id: 'amber', label: 'Amber' },
   { id: 'clear', label: 'Clear' },
@@ -25,18 +44,80 @@ const TONES: { id: BottleTone; label: string }[] = [
   { id: 'red', label: 'Red' },
 ];
 
+/** BE Category enum → 한국어 칩 라벨 (스캔 결과 prefill용 역매핑). */
+const CATEGORY_LABEL_BY_ENUM: Partial<Record<Category, string>> = {
+  WHISKEY: '위스키',
+  GIN: '진',
+  RUM: '럼',
+  VODKA: '보드카',
+  TEQUILA: '테킬라',
+  LIQUEUR: '리큐르',
+  OTHER: '기타',
+};
+
 export default function BottleNewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('위스키');
-  const [tone, setTone] = useState<BottleTone>('amber');
-  const [volume, setVolume] = useState('700');
-  const [abv, setAbv] = useState('43');
+  // 라벨 스캔 결과 prefill (scan.tsx → router params)
+  const scan = useLocalSearchParams<{
+    scanName?: string;
+    scanCategory?: string;
+    scanAbv?: string;
+    scanCapacityMl?: string;
+    scanConfidence?: string;
+  }>();
+  const scannedCategoryLabel = scan.scanCategory
+    ? CATEGORY_LABEL_BY_ENUM[scan.scanCategory as Category]
+    : undefined;
+  const scanConfidence = scan.scanConfidence ? Number(scan.scanConfidence) : undefined;
+  // confidence 낮으면(<0.7) 사용자에게 재확인 유도용 플래그
+  const lowConfidence = scanConfidence != null && scanConfidence < 0.7;
 
-  const handleSubmit = () => {
-    // UI 단계: mock 추가만 하고 뒤로. 작업 18에서 실제 API 연결.
-    router.back();
+  // 도수/용량 기본값 제거 — 비어있으면 OCR이 못 잡았다는 신호로 placeholder만 표시.
+  // 사용자가 직접 입력하거나 라벨에 없는 정보는 그대로 비워둘 수 있음.
+  const [name, setName] = useState(scan.scanName ?? '');
+  const [category, setCategory] = useState(scannedCategoryLabel ?? '위스키');
+  const [tone, setTone] = useState<BottleTone>('amber');
+  const [volume, setVolume] = useState(scan.scanCapacityMl ?? '');
+  const [abv, setAbv] = useState(scan.scanAbv ?? '');
+  // BE PR #20 신규 필드. 디자인 시안 없어서 단순 텍스트 입력만 추가.
+  const [tastingNotes, setTastingNotes] = useState('');
+  const [purchasedAt, setPurchasedAt] = useState(''); // "YYYY-MM-DD"
+  const [purchasePlace, setPurchasePlace] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insets.bottom + spacing[5];
+
+  const handleSubmit = async () => {
+    if (!BACKEND_ENABLED) {
+      router.back();
+      return;
+    }
+    if (!name.trim()) return;
+    setSubmitting(true);
+    try {
+      const beCategory = CATEGORY_MAP[category] ?? 'OTHER';
+      // 빈 문자열은 undefined로 보내서 BE validation 통과 + null 저장.
+      const trim = (v: string) => (v.trim() ? v.trim() : undefined);
+      await inventoryApi.create({
+        name: name.trim(),
+        category: beCategory,
+        capacityMl: volume ? Number(volume) : undefined,
+        abv: abv ? Number(abv) : undefined,
+        levelStatus: 'FULL',
+        isOpened: false,
+        tastingNotes: trim(tastingNotes),
+        purchasedAt: trim(purchasedAt),
+        purchasePlace: trim(purchasePlace),
+        origin: trim(origin),
+      });
+      router.back();
+    } catch (err) {
+      Alert.alert('등록 실패', parseApiError(err).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -46,7 +127,7 @@ export default function BottleNewScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       >
         <ScrollView
@@ -54,8 +135,12 @@ export default function BottleNewScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Scan CTA */}
-          <View style={styles.scanCard}>
+          {/* Scan CTA — 누르면 카메라 스캔 화면으로 */}
+          <Pressable
+            onPress={() => router.push('/bottle/scan')}
+            testID="bottle-new-scan-card"
+            style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
+          >
             <View style={styles.scanIcon}>
               <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
                 <Path
@@ -77,7 +162,19 @@ export default function BottleNewScreen() {
               <Text style={styles.scanSub}>카메라로 비추면 정보가 채워져요</Text>
             </View>
             <Text style={styles.scanArrow}>→</Text>
-          </View>
+          </Pressable>
+
+          {/* 스캔 결과 저신뢰 안내 — 정확도가 낮으면 사용자가 모든 필드 확인하도록 유도 */}
+          {lowConfidence ? (
+            <View style={styles.lowConfBanner}>
+              <Text style={styles.lowConfTitle}>
+                ⚠️ 스캔 정확도 {Math.round((scanConfidence ?? 0) * 100)}%
+              </Text>
+              <Text style={styles.lowConfText}>
+                일부 정보를 자동으로 채우지 못했어요.{'\n'}빈 칸을 직접 입력해주세요.
+              </Text>
+            </View>
+          ) : null}
 
           <Text style={styles.divider}>— OR —</Text>
 
@@ -151,16 +248,52 @@ export default function BottleNewScreen() {
               />
             </View>
           </View>
+
+          {/*
+           * BE PR #20 신규 필드 4종 — 디자인 시안 없음.
+           * MVP는 단순 텍스트 입력으로 받아두고, 디자인 받으면 칩/날짜피커로 교체.
+           * NEEDS_DESIGN.md "보틀 추가/수정 폼" 항목 참조.
+           */}
+          <Input
+            label="원산지/증류소 (선택)"
+            placeholder="예: Islay · Scotland"
+            value={origin}
+            onChangeText={setOrigin}
+            testID="bottle-new-origin-input"
+          />
+          <Input
+            label="테이스팅 노트 (선택, 쉼표로 구분)"
+            placeholder="예: 스모키, 피트, 바닐라"
+            value={tastingNotes}
+            onChangeText={setTastingNotes}
+            testID="bottle-new-tasting-notes-input"
+          />
+          <Input
+            label="구매일 (선택, YYYY-MM-DD)"
+            placeholder="2026-05-18"
+            value={purchasedAt}
+            onChangeText={setPurchasedAt}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+            testID="bottle-new-purchased-at-input"
+          />
+          <Input
+            label="구매처 (선택)"
+            placeholder="예: 신세계 와인앤스피릿"
+            value={purchasePlace}
+            onChangeText={setPurchasePlace}
+            testID="bottle-new-purchase-place-input"
+          />
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[5] }]}>
+        <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
           <CTA
             variant="amber"
             onPress={handleSubmit}
-            disabled={!name.trim()}
+            disabled={!name.trim() || submitting}
             testID="bottle-new-submit-button"
           >
-            카운터에 추가
+            {submitting ? '등록 중...' : '카운터에 추가'}
           </CTA>
         </View>
       </KeyboardAvoidingView>
@@ -184,6 +317,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
     marginBottom: spacing[5],
+  },
+  scanCardPressed: { opacity: 0.85 },
+  lowConfBanner: {
+    backgroundColor: colors.semanticBg.warn,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.semantic.warn,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    marginBottom: spacing[4],
+  },
+  lowConfTitle: {
+    fontFamily: fontFamily.sans.semibold,
+    fontSize: fontSize.md,
+    color: colors.semantic.warn,
+    marginBottom: spacing[1],
+  },
+  lowConfText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.semantic.warn,
+    lineHeight: fontSize.sm * 1.4,
   },
   scanIcon: {
     width: 48,

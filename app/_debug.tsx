@@ -45,7 +45,7 @@ export default function DebugScreen() {
 
   const handleCheckToken = async () => {
     const access = await tokenStorage.getAccessToken();
-    const refresh = await tokenStorage.getRefreshCookie();
+    const refresh = await tokenStorage.getRefreshToken();
     Alert.alert(
       '토큰 상태',
       [
@@ -96,6 +96,7 @@ export default function DebugScreen() {
           status: 'done',
         },
         { label: 'bottle/new (barAdd)', href: '/bottle/new', status: 'done' },
+        { label: 'bottle/scan (라벨 OCR)', href: '/bottle/scan', status: 'new' },
         { label: 'bar/insight', href: '/bar/insight', status: 'done' },
         {
           label: 'recipe/[id] (Detail)',
@@ -147,6 +148,11 @@ export default function DebugScreen() {
                     if (item.onPress) {
                       item.onPress();
                     } else if (item.href) {
+                      // 스택 누적 방지: dismiss 가능한 경우만 정리 후 push.
+                      // canDismiss() 체크 없이 dismissAll 호출 시 루트에서 POP_TO_TOP 경고 발생.
+                      if (router.canDismiss()) {
+                        router.dismissAll();
+                      }
                       router.push(item.href);
                     }
                   }}

@@ -1,25 +1,16 @@
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, BackBtn, Eyebrow } from '@/components/ui';
-import { type BottleTone } from '@/components/illustrations';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
-
-interface PourData {
-  name: string;
-  consumed: number;
-  tone: BottleTone;
-}
-
-const DATA: PourData[] = [
-  { name: 'Lagavulin 16', consumed: 420, tone: 'amber' },
-  { name: 'Hendricks Gin', consumed: 280, tone: 'clear' },
-  { name: 'Campari', consumed: 180, tone: 'red' },
-  { name: 'Green Chartreuse', consumed: 90, tone: 'green' },
-  { name: 'Dolin Rouge', consumed: 70, tone: 'red' },
-];
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { CATEGORY_LABEL, CATEGORY_TO_BOTTLE_TONE } from '@/utils/domainMappers';
+import type { BottleTone } from '@/components/illustrations';
+import type { InventoryInsightsResponse } from '@/types/inventory';
 
 const BAR_GRADIENTS: Record<BottleTone, [string, string]> = {
   amber: ['#e4a83c', '#8b4f10'],
@@ -32,71 +23,110 @@ const BAR_GRADIENTS: Record<BottleTone, [string, string]> = {
 export default function BarInsightScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const max = Math.max(...DATA.map((d) => d.consumed));
+  const [insights, setInsights] = useState<InventoryInsightsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    if (!BACKEND_ENABLED) return;
+    try {
+      const res = await inventoryApi.getInsights();
+      setInsights(res.data);
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchData().finally(() => setLoading(false));
+  }, [fetchData]);
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.amber[500]} />
+      </View>
+    );
+  }
+
+  const breakdown = insights?.categoryBreakdown ?? [];
+  const max = Math.max(1, ...breakdown.map((d) => d.count));
+  const totalValue = insights?.totalValue ?? 0;
+  const totalItems = insights?.totalItemCount ?? 0;
+  const recipeCount = insights?.availableRecipeCount ?? 0;
+  const warningCount = insights?.expiryWarningCount ?? 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="bar-insight-screen">
       <StatusBar style="dark" />
-      <AppBar left={<BackBtn onPress={() => router.back()} />} title="지난 30일" serif={false} />
+      <AppBar left={<BackBtn onPress={() => router.back()} />} title="인벤토리 인사이트" serif={false} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
       >
-        <Eyebrow>MONTHLY COUNTER</Eyebrow>
+        <Eyebrow>MY COLLECTION</Eyebrow>
         <Text style={styles.heading}>
-          <Text style={styles.headingAccent}>1,420ml</Text>의{'\n'}한 달이었어요
+          <Text style={styles.headingAccent}>{totalItems}병</Text>의{'\n'}나만의 카운터
         </Text>
         <Text style={styles.sub}>
-          지난 달 대비 <Text style={styles.subOk}>↑ 18% 증가</Text>
+          총 가치 <Text style={styles.subOk}>{totalValue.toLocaleString()}원</Text>
         </Text>
 
-        {/* Big number cards */}
         <View style={styles.cards}>
           <View style={[styles.card, styles.cardDark]}>
-            <Text style={styles.cardEyebrow}>DRINKS MADE</Text>
-            <Text style={[styles.cardNumber, styles.cardNumberDark]}>23</Text>
-            <Text style={styles.cardSub}>평균 매주 5.7잔</Text>
+            <Text style={styles.cardEyebrow}>POSSIBLE RECIPES</Text>
+            <Text style={[styles.cardNumber, styles.cardNumberDark]}>{recipeCount}</Text>
+            <Text style={styles.cardSub}>지금 만들 수 있는 칵테일</Text>
           </View>
           <View style={[styles.card, styles.cardAmber]}>
-            <Text style={[styles.cardEyebrow, styles.cardEyebrowAmber]}>TOP FLAVOR</Text>
-            <Text style={[styles.cardNumber, styles.cardNumberAmber]}>스모키{'\n'}& 드라이</Text>
+            <Text style={[styles.cardEyebrow, styles.cardEyebrowAmber]}>EXPIRY ALERT</Text>
+            <Text style={[styles.cardNumber, styles.cardNumberAmber]}>{warningCount}</Text>
           </View>
         </View>
 
-        {/* Top pours bar chart */}
-        <View style={styles.chart}>
-          <Eyebrow>TOP POURS</Eyebrow>
-          <View style={styles.barList}>
-            {DATA.map((d, i) => (
-              <View key={d.name} style={styles.barItem}>
-                <View style={styles.barLabelRow}>
-                  <Text style={styles.barName}>
-                    <Text style={styles.barRank}>{String(i + 1).padStart(2, '0')}</Text> {d.name}
-                  </Text>
-                  <Text style={styles.barAmount}>{d.consumed}ml</Text>
-                </View>
-                <View style={styles.barTrack}>
-                  <LinearGradient
-                    colors={BAR_GRADIENTS[d.tone]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[styles.barFill, { width: `${(d.consumed / max) * 100}%` }]}
-                  />
-                </View>
-              </View>
-            ))}
+        {breakdown.length > 0 ? (
+          <View style={styles.chart}>
+            <Eyebrow>BY CATEGORY</Eyebrow>
+            <View style={styles.barList}>
+              {breakdown.map((d, i) => {
+                const tone = CATEGORY_TO_BOTTLE_TONE[d.category];
+                return (
+                  <View key={d.category} style={styles.barItem}>
+                    <View style={styles.barLabelRow}>
+                      <Text style={styles.barName}>
+                        <Text style={styles.barRank}>{String(i + 1).padStart(2, '0')}</Text>{' '}
+                        {CATEGORY_LABEL[d.category]}
+                      </Text>
+                      <Text style={styles.barAmount}>
+                        {d.count}병 · {Math.round(d.percentage)}%
+                      </Text>
+                    </View>
+                    <View style={styles.barTrack}>
+                      <LinearGradient
+                        colors={BAR_GRADIENTS[tone]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.barFill, { width: `${(d.count / max) * 100}%` }]}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        ) : null}
 
-        {/* Butler suggestion */}
-        <View style={styles.suggestion}>
-          <Eyebrow>BUTLER SUGGESTS</Eyebrow>
-          <Text style={styles.suggestionText}>
-            곧 <Text style={styles.suggestionAccent}>Campari</Text>가 바닥날 것 같아요. 다음 주에
-            구비하면 좋겠어요.
-          </Text>
-        </View>
+        {insights && insights.expiryWarningItems.length > 0 ? (
+          <View style={styles.suggestion}>
+            <Eyebrow>BUTLER SUGGESTS</Eyebrow>
+            <Text style={styles.suggestionText}>
+              <Text style={styles.suggestionAccent}>
+                {insights.expiryWarningItems[0]?.name}
+              </Text>
+              {' '}의 유통기한이 임박했어요.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -104,6 +134,7 @@ export default function BarInsightScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper[50] },
+  center: { alignItems: 'center', justifyContent: 'center' },
   scroll: {
     paddingHorizontal: spacing[6],
     paddingTop: spacing[3],
@@ -165,8 +196,6 @@ const styles = StyleSheet.create({
   cardNumberDark: { color: colors.paper[50] },
   cardNumberAmber: {
     color: colors.ink[900],
-    fontSize: 24,
-    lineHeight: 24 * 1.1,
   },
   cardSub: {
     fontFamily: fontFamily.sans.regular,

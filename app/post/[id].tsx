@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  KeyboardAvoidingView,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -10,34 +12,122 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, BackBtn, Eyebrow, IconBtn } from '@/components/ui';
 import { CocktailGlass } from '@/components/illustrations';
+import { postApi } from '@/api/post';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { parseApiError } from '@/utils/parseApiError';
+import type { CommentResponse, PostDetailResponse } from '@/types/post';
 
-interface Comment {
-  user: string;
-  time: string;
-  body: string;
-}
-
-const COMMENTS: Comment[] = [
-  { user: '혜진', time: '1h', body: '메즈칼 종류는 어떤 걸 쓰셨어요? Del Maguey?' },
-  { user: '도윤', time: '45m', body: '오늘 저녁에 바로 만들어봐야겠어요 🥃' },
-  { user: '수아', time: '20m', body: '스모크 향이 진짜 잘 살겠네요.' },
-];
-
-const TAGS = ['#메즈칼', '#위스키', '#홈바', '#클래식'];
+const timeAgo = (iso: string): string => {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diffMs / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.round(h / 24)}d`;
+};
 
 export default function PostScreen() {
-  const { id: _id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [detail, setDetail] = useState<PostDetailResponse | null>(null);
+  const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
-  const [liked, setLiked] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [kbVisible, setKbVisible] = useState(false);
+
+  // 키보드가 떠 있을 때는 인풋바 paddingBottom을 줄여 키보드와 사이의 빈 공간 제거.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKbVisible(true));
+    const hide = Keyboard.addListener(hideEvt, () => setKbVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const inputBarPaddingBottom = kbVisible ? spacing[3] : insets.bottom + spacing[3];
+
+  const numericId = Number(id);
+
+  const fetchDetail = useCallback(async () => {
+    if (!BACKEND_ENABLED || !Number.isFinite(numericId)) return;
+    try {
+      const res = await postApi.getById(numericId);
+      setDetail(res.data);
+      setComments(res.data.comments.content);
+    } catch (err) {
+      Alert.alert('게시물 불러오기 실패', parseApiError(err).message);
+    }
+  }, [numericId]);
+
+  useEffect(() => {
+    void fetchDetail().finally(() => setLoading(false));
+  }, [fetchDetail]);
+
+  const toggleLike = async () => {
+    if (!detail) return;
+    try {
+      const fn = detail.post.isLiked ? postApi.unlike : postApi.like;
+      const res = await fn(detail.post.id);
+      setDetail({
+        ...detail,
+        post: {
+          ...detail.post,
+          isLiked: res.data.isLiked,
+          likeCount: res.data.likeCount,
+        },
+      });
+    } catch (err) {
+      Alert.alert('처리 실패', parseApiError(err).message);
+    }
+  };
+
+  const submitComment = async () => {
+    if (!detail || !comment.trim() || sending) return;
+    setSending(true);
+    try {
+      await postApi.addComment(detail.post.id, { content: comment.trim() });
+      setComment('');
+      Keyboard.dismiss();
+      // 새 댓글 반영을 위해 detail 재조회
+      await fetchDetail();
+    } catch (err) {
+      Alert.alert('댓글 등록 실패', parseApiError(err).message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.fullCenter, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.amber[500]} />
+      </View>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <View style={[styles.root, styles.fullCenter, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>게시물을 찾을 수 없습니다.</Text>
+      </View>
+    );
+  }
+
+  const post = detail.post;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="post-detail-screen">
@@ -62,7 +152,7 @@ export default function PostScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       >
         <ScrollView
@@ -79,50 +169,43 @@ export default function PostScreen() {
               style={styles.avatar}
             />
             <View style={styles.authorMeta}>
-              <Text style={styles.authorName}>바텐더 김</Text>
-              <Text style={styles.authorHandle}>@bartender_kim · 서울 · 2시간 전</Text>
+              <Text style={styles.authorName}>{post.author.username}</Text>
+              <Text style={styles.authorHandle}>
+                @{post.author.username} · {timeAgo(post.createdAt)}
+              </Text>
             </View>
-            <Pressable style={styles.followBtn}>
-              <Text style={styles.followText}>팔로우</Text>
-            </Pressable>
+            {post.isArGenerated ? (
+              <View style={styles.followBtn}>
+                <Text style={styles.followText}>AR</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Hero */}
           <View style={styles.hero}>
             <CocktailGlass style="rocks" tone="amber" size="lg" />
-            <View style={styles.recipeBadge}>
-              <Text style={styles.recipeBadgeText}>RECIPE</Text>
-            </View>
-          </View>
-
-          <Text style={styles.tag}>SMOKY · AGAVE</Text>
-          <Text style={styles.title}>Oaxacan Old Fashioned</Text>
-          <Text style={styles.body}>
-            전통 Old Fashioned에 메즈칼을 더해 스모키하면서도 깊이 있는 플레이버를 만들었습니다. 큰
-            얼음 한 덩어리와 오렌지 껍질이 핵심이에요.
-          </Text>
-
-          {/* Tags */}
-          <View style={styles.tagRow}>
-            {TAGS.map((t) => (
-              <View key={t} style={styles.tagPill}>
-                <Text style={styles.tagPillText}>{t}</Text>
+            {post.recipeTag ? (
+              <View style={styles.recipeBadge}>
+                <Text style={styles.recipeBadgeText}>RECIPE</Text>
               </View>
-            ))}
+            ) : null}
           </View>
+
+          {post.recipeTag ? (
+            <>
+              <Text style={styles.tag}>{post.recipeTag.recipeName}</Text>
+            </>
+          ) : null}
+          {post.caption ? <Text style={styles.body}>{post.caption}</Text> : null}
 
           {/* Actions */}
           <View style={styles.actionsRow}>
-            <Pressable
-              style={styles.action}
-              onPress={() => setLiked((v) => !v)}
-              testID="post-like-button"
-            >
+            <Pressable style={styles.action} onPress={toggleLike} testID="post-like-button">
               <Svg
                 width={18}
                 height={18}
                 viewBox="0 0 18 18"
-                fill={liked ? colors.semantic.danger : 'none'}
+                fill={post.isLiked ? colors.semantic.danger : 'none'}
               >
                 <Path
                   d="M9 15.5s-6-4-6-8.5a4 4 0 016-2 4 4 0 016 2c0 4.5-6 8.5-6 8.5z"
@@ -131,7 +214,7 @@ export default function PostScreen() {
                 />
               </Svg>
               <Text style={[styles.actionText, { color: colors.semantic.danger }]}>
-                {liked ? 125 : 124}
+                {post.likeCount}
               </Text>
             </Pressable>
             <Pressable style={styles.action}>
@@ -143,17 +226,17 @@ export default function PostScreen() {
                   strokeLinejoin="round"
                 />
               </Svg>
-              <Text style={styles.actionText}>18</Text>
+              <Text style={styles.actionText}>{post.commentCount}</Text>
             </Pressable>
           </View>
 
           {/* Comments */}
           <View style={styles.commentsHeader}>
-            <Eyebrow>COMMENTS · {COMMENTS.length}</Eyebrow>
+            <Eyebrow>COMMENTS · {comments.length}</Eyebrow>
           </View>
           <View style={styles.comments}>
-            {COMMENTS.map((c, i) => (
-              <View key={i} style={styles.comment}>
+            {comments.map((c) => (
+              <View key={c.id} style={styles.comment}>
                 <LinearGradient
                   colors={['#b8a384', '#6a5333']}
                   start={{ x: 0, y: 0 }}
@@ -162,19 +245,24 @@ export default function PostScreen() {
                 />
                 <View style={styles.commentBody}>
                   <Text style={styles.commentMeta}>
-                    <Text style={styles.commentUser}>{c.user}</Text>{' '}
-                    <Text style={styles.commentTime}>{c.time}</Text>
+                    <Text style={styles.commentUser}>{c.author.username}</Text>{' '}
+                    <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
                   </Text>
-                  <Text style={styles.commentText}>{c.body}</Text>
-                  <Text style={styles.commentReply}>답글 ♡ 3</Text>
+                  <Text style={styles.commentText}>{c.content}</Text>
+                  {c.replyCount > 0 ? (
+                    <Text style={styles.commentReply}>답글 {c.replyCount}</Text>
+                  ) : null}
                 </View>
               </View>
             ))}
+            {comments.length === 0 ? (
+              <Text style={styles.emptyComment}>첫 댓글을 남겨보세요.</Text>
+            ) : null}
           </View>
         </ScrollView>
 
-        {/* Comment input */}
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom + spacing[3] }]}>
+        {/* Comment input — KAV가 키보드 위로 밀어줌 */}
+        <View style={[styles.inputBar, { paddingBottom: inputBarPaddingBottom }]}>
           <LinearGradient
             colors={['#e4a83c', '#6d4410']}
             start={{ x: 0, y: 0 }}
@@ -190,12 +278,12 @@ export default function PostScreen() {
             testID="post-comment-input"
           />
           <Pressable
-            style={[styles.sendBtn, !comment.trim() && styles.sendBtnDisabled]}
-            disabled={!comment.trim()}
-            onPress={() => setComment('')}
+            style={[styles.sendBtn, (!comment.trim() || sending) && styles.sendBtnDisabled]}
+            disabled={!comment.trim() || sending}
+            onPress={submitComment}
             testID="post-comment-submit"
           >
-            <Text style={styles.sendBtnText}>올리기</Text>
+            <Text style={styles.sendBtnText}>{sending ? '...' : '올리기'}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -205,6 +293,19 @@ export default function PostScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper[50] },
+  fullCenter: { alignItems: 'center', justifyContent: 'center' },
+  errorText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.md,
+    color: colors.paper[400],
+  },
+  emptyComment: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.paper[400],
+    paddingVertical: spacing[4],
+    textAlign: 'center',
+  },
   flex: { flex: 1 },
   scroll: {
     paddingHorizontal: spacing[5],

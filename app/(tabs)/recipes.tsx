@@ -1,69 +1,106 @@
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppBar, Chip, Eyebrow, IconBtn } from '@/components/ui';
 import { CocktailGlass, type BottleTone } from '@/components/illustrations';
+import { recipeApi } from '@/api/recipe';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import type { RecipeHomeResponse, RecipeSummary , BaseSpirit } from '@/types/recipe';
 
-type GlassToneCompat = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
-const fallbackTone = (t: BottleTone): GlassToneCompat =>
-  t === 'amber' || t === 'clear' || t === 'red' ? t : 'amber';
-
-interface Recipe {
-  id: string;
-  name: string;
-  abv: number;
-  time: number;
-  tone: BottleTone;
-  canMake: boolean;
-  missing?: number;
-  tag: string;
+/**
+ * 칩 라벨 ↔ BE filter (baseSpirit 또는 category).
+ * "All" = 필터 없음 → /recipes/home 호출.
+ * 나머지 = /recipes 검색 호출.
+ * "시그니처"는 BE에 매칭 enum 없음 → isCustom=true로 대응 (커스텀 레시피 = 사용자 작성).
+ */
+interface RecipeFilter {
+  label: string;
+  /** /recipes 호출 시 query params. undefined면 home으로 폴백. */
+  params?: {
+    baseSpirit?: 'WHISKEY' | 'GIN' | 'VODKA' | 'RUM' | 'TEQUILA' | 'LIQUEUR';
+    category?: 'CLASSIC' | 'TROPICAL' | 'NON_ALCOHOLIC';
+  };
 }
-
-// 작업 18에서 실제 레시피 API로 교체.
-const MOCK_RECIPES: Recipe[] = [
-  { id: '1', name: 'Penicillin', abv: 22, time: 3, tone: 'amber', canMake: true, tag: 'SMOKY' },
-  { id: '2', name: 'Negroni', abv: 28, time: 2, tone: 'red', canMake: true, tag: 'BITTER' },
-  {
-    id: '3',
-    name: 'Gin Basil Smash',
-    abv: 18,
-    time: 4,
-    tone: 'green',
-    canMake: false,
-    missing: 1,
-    tag: 'HERBAL',
-  },
-  {
-    id: '4',
-    name: 'Espresso Martini',
-    abv: 20,
-    time: 3,
-    tone: 'amber',
-    canMake: true,
-    tag: 'RICH',
-  },
-  {
-    id: '5',
-    name: 'Aviation',
-    abv: 24,
-    time: 3,
-    tone: 'clear',
-    canMake: false,
-    missing: 2,
-    tag: 'FLORAL',
-  },
+const FILTERS: RecipeFilter[] = [
+  { label: 'All' },
+  { label: '위스키 베이스', params: { baseSpirit: 'WHISKEY' } },
+  { label: '진 베이스', params: { baseSpirit: 'GIN' } },
+  { label: '논알콜', params: { category: 'NON_ALCOHOLIC' } },
+  { label: '클래식', params: { category: 'CLASSIC' } },
+  { label: '트로피컬', params: { category: 'TROPICAL' } },
 ];
 
-const FILTERS = ['All', '위스키 베이스', '진 베이스', '논알콜', '클래식', '시그니처'];
+/** baseSpirit → CocktailGlass tone (rocks/coupe/highball 3 가지 톤만 지원). */
+type GlassTone = Extract<BottleTone, 'amber' | 'clear' | 'red'>;
+const baseSpiritToTone = (s?: BaseSpirit | null): GlassTone => {
+  if (s === 'GIN' || s === 'VODKA' || s === 'TEQUILA') return 'clear';
+  if (s === 'LIQUEUR') return 'red';
+  return 'amber'; // WHISKEY / RUM / OTHER / NONE
+};
 
 export default function RecipesTabScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState<string>('All');
+  const [home, setHome] = useState<RecipeHomeResponse | null>(null);
+  const [searchResults, setSearchResults] = useState<RecipeSummary[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const activeFilter = FILTERS.find((f) => f.label === filter);
+
+  const fetch = useCallback(async () => {
+    if (!BACKEND_ENABLED) return;
+    try {
+      if (activeFilter?.params) {
+        // 필터 적용: /recipes 검색 호출
+        const res = await recipeApi.search({ ...activeFilter.params, size: 20 });
+        setSearchResults(res.data.content);
+      } else {
+        // All: home 묶음 호출
+        const res = await recipeApi.getHome();
+        setHome(res.data);
+        setSearchResults(null);
+      }
+    } catch {
+      /* noop */
+    }
+  }, [activeFilter]);
+
+  useEffect(() => {
+    void fetch().finally(() => setLoading(false));
+  }, [fetch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!loading) void fetch();
+    }, [fetch, loading]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetch();
+    setRefreshing(false);
+  }, [fetch]);
+
+  // 필터 적용 중: tonight hero는 숨김 + 검색 결과 리스트만 표시.
+  // 필터 없음: home의 preference + availableRecipes 사용.
+  const tonight: RecipeSummary | undefined = searchResults
+    ? undefined
+    : home?.preferenceRecommendations?.[0] ?? home?.availableRecipes?.[0];
+  const makeable: RecipeSummary[] = searchResults ?? home?.availableRecipes ?? [];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-recipes-screen">
@@ -92,29 +129,35 @@ export default function RecipesTabScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing[6] }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Tonight hero */}
-        <Pressable
-          onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: 'tonight' } })}
-          style={({ pressed }) => [styles.hero, pressed && styles.heroPressed]}
-          testID="recipes-tonight-card"
-        >
-          <View style={styles.heroGlassWrap} pointerEvents="none">
-            <CocktailGlass style="rocks" tone="amber" size="lg" />
-          </View>
-          <Text style={styles.heroEyebrow}>TONIGHT&apos;S POUR</Text>
-          <Text style={styles.heroTitle}>
-            Smoky{'\n'}Old{'\n'}
-            <Text style={styles.heroTitleAccent}>Fashioned</Text>
-          </Text>
-          <Text style={styles.heroSub}>오늘 밤, 당신의 라가불린을 위해</Text>
-          <View style={styles.heroFooter}>
-            <Text style={styles.heroMeta}>● 3 min ● 28% ABV ● 재료 OK</Text>
-            <View style={styles.heroArrow}>
-              <Text style={styles.heroArrowText}>→</Text>
+        {tonight ? (
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/recipe/[id]', params: { id: String(tonight.id) } })
+            }
+            style={({ pressed }) => [styles.hero, pressed && styles.heroPressed]}
+            testID="recipes-tonight-card"
+          >
+            <View style={styles.heroGlassWrap} pointerEvents="none">
+              <CocktailGlass style="rocks" tone={baseSpiritToTone(tonight.baseSpirit)} size="lg" />
             </View>
-          </View>
-        </Pressable>
+            <Text style={styles.heroEyebrow}>TONIGHT&apos;S POUR</Text>
+            <Text style={styles.heroTitle}>{tonight.name}</Text>
+            <Text style={styles.heroSub} numberOfLines={2}>
+              {tonight.description ?? '오늘 밤, 당신을 위한 한 잔'}
+            </Text>
+            <View style={styles.heroFooter}>
+              <Text style={styles.heroMeta}>
+                ● {tonight.estimatedMinutes ?? 3} min ● {tonight.abv ?? '—'}% ABV
+              </Text>
+              <View style={styles.heroArrow}>
+                <Text style={styles.heroArrowText}>→</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
 
         {/* Filter chips */}
         <ScrollView
@@ -124,17 +167,16 @@ export default function RecipesTabScreen() {
         >
           {FILTERS.map((f) => (
             <Chip
-              key={f}
-              active={f === filter}
-              onPress={() => setFilter(f)}
-              testID={`recipes-filter-${f}`}
+              key={f.label}
+              active={f.label === filter}
+              onPress={() => setFilter(f.label)}
+              testID={`recipes-filter-${f.label}`}
             >
-              {f}
+              {f.label}
             </Chip>
           ))}
         </ScrollView>
 
-        {/* Section header */}
         <View style={styles.sectionHeader}>
           <View>
             <Eyebrow>NOW MAKEABLE</Eyebrow>
@@ -143,45 +185,46 @@ export default function RecipesTabScreen() {
           <Text style={styles.sectionMore}>더보기 →</Text>
         </View>
 
-        {/* Recipe list */}
-        <View style={styles.list}>
-          {MOCK_RECIPES.map((r) => (
-            <Pressable
-              key={r.id}
-              onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: r.id } })}
-              testID={`recipes-card-${r.id}`}
-              style={({ pressed }) => [
-                styles.card,
-                !r.canMake && styles.cardDisabled,
-                pressed && styles.cardPressed,
-              ]}
-            >
-              <View style={styles.cardThumb}>
-                <CocktailGlass style="rocks" tone={fallbackTone(r.tone)} size="sm" />
-              </View>
-              <View style={styles.cardMeta}>
-                <Text style={[styles.cardTag, !r.canMake && styles.cardTagDim]}>{r.tag}</Text>
-                <Text style={styles.cardName} numberOfLines={1}>
-                  {r.name}
-                </Text>
-                <Text style={styles.cardSub}>
-                  {r.abv}% ABV · {r.time} min
-                  {!r.canMake && r.missing !== undefined ? (
-                    <>
-                      {' · '}
-                      <Text style={styles.cardMissing}>재료 {r.missing} 부족</Text>
-                    </>
-                  ) : null}
-                </Text>
-              </View>
-              <View style={[styles.cardArrow, !r.canMake && styles.cardArrowWarn]}>
-                <Text style={[styles.cardArrowText, !r.canMake && styles.cardArrowTextWarn]}>
-                  {r.canMake ? '→' : '!'}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.amber[500]} />
+          </View>
+        ) : makeable.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>아직 만들 수 있는 레시피가 없어요</Text>
+            <Text style={styles.emptySub}>My Bar에 보틀을 추가해보세요.</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {makeable.map((r) => (
+              <Pressable
+                key={r.id}
+                onPress={() =>
+                  router.push({ pathname: '/recipe/[id]', params: { id: String(r.id) } })
+                }
+                testID={`recipes-card-${r.id}`}
+                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+              >
+                <View style={styles.cardThumb}>
+                  <CocktailGlass style="rocks" tone={baseSpiritToTone(r.baseSpirit)} size="sm" />
+                </View>
+                <View style={styles.cardMeta}>
+                  <Text style={styles.cardTag}>{r.tasteTags[0] ?? 'COCKTAIL'}</Text>
+                  <Text style={styles.cardName} numberOfLines={1}>
+                    {r.name}
+                  </Text>
+                  <Text style={styles.cardSub}>
+                    {r.abv != null ? `${r.abv}% ABV` : ''}
+                    {r.estimatedMinutes ? ` · ${r.estimatedMinutes} min` : ''}
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Text style={styles.cardArrowText}>→</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -228,11 +271,6 @@ const styles = StyleSheet.create({
     lineHeight: fontSize.h1 * 1.05,
     marginTop: spacing[2],
     maxWidth: 200,
-  },
-  heroTitleAccent: {
-    fontFamily: fontFamily.serif.regular,
-    color: colors.amber[200],
-    fontStyle: 'italic',
   },
   heroSub: {
     fontFamily: fontFamily.sans.regular,
@@ -292,6 +330,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.amber[500],
   },
+  center: {
+    paddingVertical: spacing[6],
+    alignItems: 'center',
+  },
+  empty: {
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[6],
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.serif.semibold,
+    fontSize: fontSize.lg,
+    color: colors.ink[900],
+  },
+  emptySub: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.paper[400],
+  },
   list: {
     paddingHorizontal: spacing[5],
     paddingTop: spacing[3],
@@ -306,9 +364,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: 'rgba(184,163,132,0.2)',
-  },
-  cardDisabled: {
-    opacity: 0.72,
   },
   cardPressed: {
     opacity: 0.85,
@@ -332,9 +387,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     color: colors.amber[500],
   },
-  cardTagDim: {
-    color: colors.paper[400],
-  },
   cardName: {
     fontFamily: fontFamily.serif.semibold,
     fontSize: fontSize.lg,
@@ -349,10 +401,6 @@ const styles = StyleSheet.create({
     color: colors.paper[400],
     marginTop: spacing[1],
   },
-  cardMissing: {
-    color: colors.semantic.danger,
-    fontFamily: fontFamily.sans.semibold,
-  },
   cardArrow: {
     width: 32,
     height: 32,
@@ -361,15 +409,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardArrowWarn: {
-    backgroundColor: colors.paper[200],
-  },
   cardArrowText: {
     fontFamily: fontFamily.sans.semibold,
     fontSize: fontSize.md,
     color: colors.paper[50],
-  },
-  cardArrowTextWarn: {
-    color: colors.paper[400],
   },
 });

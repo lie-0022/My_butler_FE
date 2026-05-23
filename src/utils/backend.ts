@@ -13,4 +13,4 @@
  *
  * CLAUDE.md §3 참조.
  */
-export const BACKEND_ENABLED = false;
+export const BACKEND_ENABLED = true;

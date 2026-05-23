@@ -3,16 +3,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'expo-router';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -20,6 +12,7 @@ import { authApi } from '@/api/auth';
 import { AppBar, BackBtn, CTA, Eyebrow, Input } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, shadows, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z.object({
@@ -115,10 +108,12 @@ function InputView({
   insetsBottom,
 }: InputViewProps) {
   const insets = useSafeAreaInsets();
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insetsBottom + spacing[5];
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       testID="forgot-password-screen-input"
     >
@@ -159,7 +154,7 @@ function InputView({
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insetsBottom + spacing[5] }]}>
+      <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
         <CTA
           variant="amber"
           onPress={onSubmit}

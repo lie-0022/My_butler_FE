@@ -1,22 +1,27 @@
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBar, Eyebrow, IconBtn } from '@/components/ui';
-import { Bottle, type BottleTone } from '@/components/illustrations';
+import { Bottle } from '@/components/illustrations';
 import { useAuthStore } from '@/store/authStore';
+import { userApi } from '@/api/user';
+import { inventoryApi } from '@/api/inventory';
 import { colors, fontFamily, fontSize, lineHeight, radius, shadows, spacing } from '@/constants';
+import { BACKEND_ENABLED } from '@/utils/backend';
+import { CATEGORY_TO_BOTTLE_TONE, LEVEL_TO_RATIO } from '@/utils/domainMappers';
+import type { MyProfileStats } from '@/types/user';
+import type { InventoryItemSummary } from '@/types/inventory';
 
-const STATS = [
-  { n: '42', l: 'POSTS' },
-  { n: '1.2k', l: 'FOLLOWERS' },
-  { n: '328', l: 'FOLLOWING' },
-];
-
-const SHELF_TONES: BottleTone[] = ['amber', 'clear', 'green', 'red', 'amber', 'clear', 'amber'];
+/** 큰 숫자(1k+) 압축 표시 — 1234 → "1.2k" */
+const compactNumber = (n: number | undefined): string => {
+  if (n == null) return '0';
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+};
 
 const TABS = ['POSTS', 'RECIPES', 'SAVED'] as const;
 type ProfileTab = (typeof TABS)[number];
@@ -27,8 +32,37 @@ export default function ProfileTabScreen() {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProfileTab>('POSTS');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [stats, setStats] = useState<MyProfileStats | null>(null);
+  const [shelfBottles, setShelfBottles] = useState<InventoryItemSummary[]>([]);
+  const [shelfTotal, setShelfTotal] = useState<number>(0);
 
-  const nickname = user?.name ?? '바텐더';
+  const nickname = user?.username ?? '바텐더';
+
+  // BE 병합 API + 인벤토리 동시 호출
+  const fetchAll = useCallback(async () => {
+    if (!BACKEND_ENABLED) return;
+    try {
+      const [profileRes, inventoryRes] = await Promise.all([
+        userApi.getMyProfilePage(),
+        inventoryApi.getHome({ size: 9 }),
+      ]);
+      setStats(profileRes.data.stats);
+      setShelfBottles(inventoryRes.data.inventory.content.slice(0, 7));
+      setShelfTotal(inventoryRes.data.insights.totalItemCount);
+    } catch {
+      /* noop — 인터셉터가 처리 */
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAll();
+  }, [fetchAll]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchAll();
+    }, [fetchAll]),
+  );
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠어요?', [
@@ -78,12 +112,18 @@ export default function ProfileTabScreen() {
             style={[styles.avatar, shadows.md]}
           />
           <View style={styles.statsGrid}>
-            {STATS.map((s) => (
-              <View key={s.l} style={styles.statCol}>
-                <Text style={styles.statN}>{s.n}</Text>
-                <Text style={styles.statL}>{s.l}</Text>
-              </View>
-            ))}
+            <View style={styles.statCol}>
+              <Text style={styles.statN}>{compactNumber(stats?.postCount)}</Text>
+              <Text style={styles.statL}>POSTS</Text>
+            </View>
+            <View style={styles.statCol}>
+              <Text style={styles.statN}>{compactNumber(stats?.receivedLikeCount)}</Text>
+              <Text style={styles.statL}>LIKES</Text>
+            </View>
+            <View style={styles.statCol}>
+              <Text style={styles.statN}>{compactNumber(stats?.myRecipeCount)}</Text>
+              <Text style={styles.statL}>RECIPES</Text>
+            </View>
           </View>
         </View>
 
@@ -103,16 +143,24 @@ export default function ProfileTabScreen() {
           </Pressable>
         </View>
 
-        {/* My shelf */}
+        {/* My shelf — 실제 인벤토리 상위 7병 */}
         <View style={styles.shelfSection}>
-          <Eyebrow>THE SHELF · 23 BOTTLES</Eyebrow>
+          <Eyebrow>THE SHELF · {shelfTotal} BOTTLES</Eyebrow>
           <View style={styles.shelfBox}>
             <View style={styles.shelfRow}>
-              {SHELF_TONES.map((tn, j) => (
-                <View key={j} style={styles.shelfBottle}>
-                  <Bottle tone={tn} height={62 + (j % 2 === 0 ? 6 : 0)} level={0.5 + j * 0.05} />
-                </View>
-              ))}
+              {shelfBottles.length > 0 ? (
+                shelfBottles.map((b, j) => (
+                  <View key={b.id} style={styles.shelfBottle}>
+                    <Bottle
+                      tone={CATEGORY_TO_BOTTLE_TONE[b.category]}
+                      height={62 + (j % 2 === 0 ? 6 : 0)}
+                      level={LEVEL_TO_RATIO[b.levelStatus]}
+                    />
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.shelfEmpty}>My Bar에 보틀을 추가해보세요</Text>
+              )}
             </View>
             <View style={styles.shelfBoard} />
           </View>
@@ -272,6 +320,14 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: colors.brass.base,
     marginTop: spacing[1],
+  },
+  shelfEmpty: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.paper[400],
+    paddingVertical: spacing[5],
+    textAlign: 'center',
+    width: '100%',
   },
   tabsRow: {
     flexDirection: 'row',

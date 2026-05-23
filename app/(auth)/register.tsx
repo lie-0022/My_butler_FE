@@ -3,16 +3,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'expo-router';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -20,6 +12,7 @@ import { authApi } from '@/api/auth';
 import { AppBar, BackBtn, CTA, Eyebrow, Input, ProgressDots } from '@/components/ui';
 import { colors, fontFamily, fontSize, lineHeight, radius, spacing } from '@/constants';
 import { BACKEND_ENABLED } from '@/utils/backend';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 import { parseApiError } from '@/utils/parseApiError';
 
 const schema = z
@@ -43,6 +36,8 @@ export default function RegisterScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailAvailability>('idle');
+  const kbVisible = useKeyboardVisible();
+  const footerPadBottom = kbVisible ? spacing[3] : insets.bottom + spacing[5];
 
   const {
     control,
@@ -55,27 +50,22 @@ export default function RegisterScreen() {
     mode: 'onChange', // 입력 즉시 isValid 갱신 — CTA 활성화 타이밍 자연스럽게
   });
 
-  // 기존 register.tsx의 username 중복확인 로직 보존 — email을 username 필드로 매핑.
+  /**
+   * 이메일 중복 인라인 체크.
+   * BE에 check-email 엔드포인트가 없고, check-username은 username 규칙(^[A-Za-z0-9가-힣_]+$)을
+   * 강제해서 이메일을 그대로 넣을 수 없다. 따라서 이메일 중복은 onSubmit 시점에 BE의
+   * DUPLICATE_EMAIL(AUTH_001) 에러로만 잡는다. 인라인 표시는 비활성.
+   */
   const checkEmailAvailable = async () => {
-    if (!BACKEND_ENABLED) return; // UI 단계: 백엔드 호출 보류 (작업 18에서 활성)
+    if (!BACKEND_ENABLED) return;
     const email = getValues('email').trim();
     if (!email || !z.string().email().safeParse(email).success) return;
-    setEmailStatus('checking');
-    try {
-      const res = await authApi.checkUsername(email);
-      setEmailStatus(res.data.available ? 'available' : 'taken');
-    } catch {
-      setEmailStatus('idle');
-    }
+    setEmailStatus('idle');
   };
 
   const onSubmit = async (values: RegisterForm) => {
     if (!agreeTerms) {
       Alert.alert('약관 동의 필요', '이용약관 및 개인정보처리방침에 동의해주세요.');
-      return;
-    }
-    if (emailStatus === 'taken') {
-      Alert.alert('이메일 중복', '이미 사용 중인 이메일입니다.');
       return;
     }
     // UI 단계: 백엔드 미연동. 작업 18에서 BACKEND_ENABLED=true로 활성.
@@ -85,11 +75,13 @@ export default function RegisterScreen() {
     }
     setSubmitting(true);
     try {
-      // 백엔드 username 필드에 email 매핑 (작업 18에서 정리 예정).
+      // BE가 user_<random8>로 자동 생성 → 사용자는 step1에서 닉네임으로 교체.
       await authApi.register({
-        username: values.email,
         email: values.email,
         password: values.password,
+        termsAgreed: agreeTerms,
+        privacyAgreed: agreeTerms,
+        marketingAgreed: false,
       });
       router.replace('/(onboarding)/step1');
     } catch (error) {
@@ -126,7 +118,7 @@ export default function RegisterScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 70 : 0}
       >
         <ScrollView
@@ -234,7 +226,7 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[5] }]}>
+        <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
           <CTA
             variant="amber"
             onPress={handleSubmit(onSubmit)}
