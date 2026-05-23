@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
   Platform,
@@ -44,14 +44,42 @@ const TONES: { id: BottleTone; label: string }[] = [
   { id: 'red', label: 'Red' },
 ];
 
+/** BE Category enum → 한국어 칩 라벨 (스캔 결과 prefill용 역매핑). */
+const CATEGORY_LABEL_BY_ENUM: Partial<Record<Category, string>> = {
+  WHISKEY: '위스키',
+  GIN: '진',
+  RUM: '럼',
+  VODKA: '보드카',
+  TEQUILA: '테킬라',
+  LIQUEUR: '리큐르',
+  OTHER: '기타',
+};
+
 export default function BottleNewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('위스키');
+  // 라벨 스캔 결과 prefill (scan.tsx → router params)
+  const scan = useLocalSearchParams<{
+    scanName?: string;
+    scanCategory?: string;
+    scanAbv?: string;
+    scanCapacityMl?: string;
+    scanConfidence?: string;
+  }>();
+  const scannedCategoryLabel = scan.scanCategory
+    ? CATEGORY_LABEL_BY_ENUM[scan.scanCategory as Category]
+    : undefined;
+  const scanConfidence = scan.scanConfidence ? Number(scan.scanConfidence) : undefined;
+  // confidence 낮으면(<0.7) 사용자에게 재확인 유도용 플래그
+  const lowConfidence = scanConfidence != null && scanConfidence < 0.7;
+
+  // 도수/용량 기본값 제거 — 비어있으면 OCR이 못 잡았다는 신호로 placeholder만 표시.
+  // 사용자가 직접 입력하거나 라벨에 없는 정보는 그대로 비워둘 수 있음.
+  const [name, setName] = useState(scan.scanName ?? '');
+  const [category, setCategory] = useState(scannedCategoryLabel ?? '위스키');
   const [tone, setTone] = useState<BottleTone>('amber');
-  const [volume, setVolume] = useState('700');
-  const [abv, setAbv] = useState('43');
+  const [volume, setVolume] = useState(scan.scanCapacityMl ?? '');
+  const [abv, setAbv] = useState(scan.scanAbv ?? '');
   // BE PR #20 신규 필드. 디자인 시안 없어서 단순 텍스트 입력만 추가.
   const [tastingNotes, setTastingNotes] = useState('');
   const [purchasedAt, setPurchasedAt] = useState(''); // "YYYY-MM-DD"
@@ -107,8 +135,12 @@ export default function BottleNewScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Scan CTA */}
-          <View style={styles.scanCard}>
+          {/* Scan CTA — 누르면 카메라 스캔 화면으로 */}
+          <Pressable
+            onPress={() => router.push('/bottle/scan')}
+            testID="bottle-new-scan-card"
+            style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
+          >
             <View style={styles.scanIcon}>
               <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
                 <Path
@@ -130,7 +162,19 @@ export default function BottleNewScreen() {
               <Text style={styles.scanSub}>카메라로 비추면 정보가 채워져요</Text>
             </View>
             <Text style={styles.scanArrow}>→</Text>
-          </View>
+          </Pressable>
+
+          {/* 스캔 결과 저신뢰 안내 — 정확도가 낮으면 사용자가 모든 필드 확인하도록 유도 */}
+          {lowConfidence ? (
+            <View style={styles.lowConfBanner}>
+              <Text style={styles.lowConfTitle}>
+                ⚠️ 스캔 정확도 {Math.round((scanConfidence ?? 0) * 100)}%
+              </Text>
+              <Text style={styles.lowConfText}>
+                일부 정보를 자동으로 채우지 못했어요.{'\n'}빈 칸을 직접 입력해주세요.
+              </Text>
+            </View>
+          ) : null}
 
           <Text style={styles.divider}>— OR —</Text>
 
@@ -273,6 +317,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
     marginBottom: spacing[5],
+  },
+  scanCardPressed: { opacity: 0.85 },
+  lowConfBanner: {
+    backgroundColor: colors.semanticBg.warn,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.semantic.warn,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    marginBottom: spacing[4],
+  },
+  lowConfTitle: {
+    fontFamily: fontFamily.sans.semibold,
+    fontSize: fontSize.md,
+    color: colors.semantic.warn,
+    marginBottom: spacing[1],
+  },
+  lowConfText: {
+    fontFamily: fontFamily.sans.regular,
+    fontSize: fontSize.sm,
+    color: colors.semantic.warn,
+    lineHeight: fontSize.sm * 1.4,
   },
   scanIcon: {
     width: 48,

@@ -102,3 +102,22 @@ export type UpdateInventoryItemRequest = Partial<CreateInventoryItemRequest>;
 export interface UpdateLevelRequest {
   levelStatus: LevelStatus;
 }
+
+// ─── 라벨 OCR 스캔 ──────────────────────────────────────────────────────────
+// POST /inventory/scan (multipart 이미지) → OCR 추출 결과.
+// 모든 필드 nullable: OCR이 못 뽑은 항목은 사용자가 수동 입력.
+
+export interface ScanResultResponse {
+  /** OCR로 추출한 제품명 추정값 */
+  name?: string | null;
+  /** 브랜드 매핑/LLM으로 추론한 카테고리. 불확실하면 null → 사용자 선택 */
+  category?: Category | null;
+  /** 정규식 추출 (예: "40% vol" → 40) */
+  abv?: number | null;
+  /** 정규식 추출 (예: "700ml" → 700) */
+  capacityMl?: number | null;
+  /** 0~1. 낮으면 FE에서 필드 하이라이트 + 수동 확인 유도 */
+  confidence?: number | null;
+  /** OCR 원시 텍스트 (디버그/수동 보정용) */
+  rawText?: string | null;
+}

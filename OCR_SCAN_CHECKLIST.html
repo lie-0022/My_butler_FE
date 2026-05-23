@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>라벨 OCR 스캔 — 구현 체크리스트</title>
+    <style>
+      :root {
+        --ink: #2d1908;
+        --ink2: #5a3d24;
+        --amber: #c8a265;
+        --amber-d: #9a6b1f;
+        --paper: #faf6ef;
+        --paper2: #f0e8da;
+        --line: #e2d6c2;
+        --ok: #4b7a4a;
+        --done-bg: #eef4ec;
+        --fe: #2f6f9f;
+        --be: #a8541f;
+        --shared: #6a4ea0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Apple SD Gothic Neo',
+          'Malgun Gothic', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        line-height: 1.5;
+        padding: 32px 16px 80px;
+      }
+      .wrap { max-width: 860px; margin: 0 auto; }
+      header {
+        border-bottom: 3px solid var(--amber);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+      }
+      h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.5px; }
+      .sub { color: var(--ink2); font-size: 14px; }
+      .progress-box {
+        margin: 20px 0 28px;
+        background: var(--paper2);
+        border-radius: 12px;
+        padding: 16px 20px;
+      }
+      .progress-track {
+        height: 10px;
+        background: #ddd0bb;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--amber), var(--amber-d));
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 32px 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        color: #fff;
+        letter-spacing: 0.5px;
+      }
+      .tag.fe { background: var(--fe); }
+      .tag.be { background: var(--be); }
+      .tag.shared { background: var(--shared); }
+      .phase-desc { color: var(--ink2); font-size: 13px; margin: 0 0 12px; }
+      ul.tasks { list-style: none; padding: 0; margin: 0 0 8px; }
+      ul.tasks li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        margin-bottom: 6px;
+        background: #fff;
+        transition: background 0.15s;
+      }
+      ul.tasks li.done {
+        background: var(--done-bg);
+        border-color: #cfe0cb;
+      }
+      ul.tasks li.done .task-text { text-decoration: line-through; color: #8a9a86; }
+      input[type='checkbox'] {
+        width: 19px;
+        height: 19px;
+        margin-top: 2px;
+        accent-color: var(--ok);
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .task-body { flex: 1; }
+      .task-text { font-size: 14.5px; font-weight: 500; }
+      .task-note {
+        font-size: 12.5px;
+        color: var(--ink2);
+        margin-top: 2px;
+      }
+      .task-file {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        color: var(--amber-d);
+        background: #f5ecdc;
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      .decision {
+        background: #fff8ec;
+        border: 1px solid var(--amber);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin: 16px 0;
+      }
+      .decision h3 { margin: 0 0 6px; font-size: 15px; }
+      .decision p { margin: 4px 0; font-size: 13.5px; color: var(--ink2); }
+      .reset-btn {
+        margin-top: 24px;
+        background: none;
+        border: 1px solid var(--line);
+        color: var(--ink2);
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .reset-btn:hover { background: var(--paper2); }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12.5px;
+        background: #f0e8da;
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      .legend { font-size: 12px; color: var(--ink2); margin-top: 6px; }
+      .legend span { margin-right: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>🥃 라벨 OCR 스캔 — 구현 체크리스트</h1>
+        <div class="sub">술병 라벨 촬영 → OCR → 제품명/카테고리/도수/용량 자동 등록</div>
+        <div class="legend">
+          <span><span class="tag fe">FE</span> 프론트</span>
+          <span><span class="tag be">BE</span> 백엔드</span>
+          <span><span class="tag shared">SPEC</span> 공통/협의</span>
+        </div>
+      </header>
+
+      <div class="progress-box">
+        <div class="progress-label">
+          <span>전체 진행률</span>
+          <span id="progress-text">0 / 0</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div class="decision">
+        <h3>🎯 확정된 결정</h3>
+        <p><b>아키텍처</b>: BE 경유 클라우드 OCR (Expo Go 유지, API 키 서버 보관)</p>
+        <p><b>OCR 엔진</b>: PoC는 Google Vision(단가 명확), 한글 정확도 이슈 시 CLOVA 추가</p>
+        <p><b>구조화</b>: 도수/용량 = 정규식, 제품명/카테고리 = LLM(Claude Haiku) + 브랜드 매핑</p>
+        <p><b>원칙</b>: OCR 결과는 폼 prefill만, 사용자 확인/수정 필수 (환각 방지)</p>
+      </div>
+
+      <!-- ============ PHASE 0: 사전 협의 ============ -->
+      <h2>0. 사전 협의 <span class="tag shared">SPEC</span></h2>
+      <p class="phase-desc">코드 작성 전 합의해야 진행 가능한 항목</p>
+      <ul class="tasks" data-phase="0">
+        <li data-id="0-1">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">BE 팀에 OCR 기능 작업 + collaborator 초대 요청</div>
+            <div class="task-note">남의 도메인 침범 방지 — "OCR BE까지 작업해도 될까요" 확인</div>
+          </div>
+        </li>
+        <li data-id="0-2">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">BE 레포 push 권한 확인 (collaborator 수락)</div>
+          </div>
+        </li>
+        <li data-id="0-3">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text"><code>/inventory/scan</code> 응답 스키마 확정</div>
+            <div class="task-note">
+              { name?, category?, abv?, capacityMl?, confidence?, rawText? } — 모든 필드 nullable
+            </div>
+          </div>
+        </li>
+        <li data-id="0-4">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">OCR API 키 발급 (Google Vision 또는 CLOVA)</div>
+            <div class="task-note">BE application.yml(gitignore) 또는 환경변수로 보관</div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- ============ PHASE 1: FE 선작업 ============ -->
+      <h2>1. FE 선작업 (BE 없이 가능) <span class="tag fe">FE</span></h2>
+      <p class="phase-desc">BE 응답 스펙만 정하면 바로 가능. 지금 진행 중.</p>
+      <ul class="tasks" data-phase="1">
+        <li data-id="1-1">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">expo-camera + expo-image-manipulator 설치</div>
+            <div class="task-note">npx expo install (Expo Go 호환)</div>
+          </div>
+        </li>
+        <li data-id="1-2">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">스캔 응답 타입 정의</div>
+            <div class="task-note"><span class="task-file">src/types/inventory.ts</span> ScanResultResponse</div>
+          </div>
+        </li>
+        <li data-id="1-3">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">scanApi 메서드 추가 (multipart 업로드)</div>
+            <div class="task-note"><span class="task-file">src/api/inventory.ts</span> inventoryApi.scan(imageUri)</div>
+          </div>
+        </li>
+        <li data-id="1-4">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">카메라 촬영 화면 신규</div>
+            <div class="task-note"><span class="task-file">app/bottle/scan.tsx</span> — 권한/촬영/갤러리/가이드 프레임</div>
+          </div>
+        </li>
+        <li data-id="1-5">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">이미지 리사이즈/압축 후 업로드</div>
+            <div class="task-note">expo-image-manipulator — 업로드 용량 절감</div>
+          </div>
+        </li>
+        <li data-id="1-6">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">bottle/new "라벨 스캔" 카드 → scan 화면 연결</div>
+            <div class="task-note"><span class="task-file">app/bottle/new.tsx</span> 현재 비활성 View → Pressable</div>
+          </div>
+        </li>
+        <li data-id="1-7">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">스캔 결과 → bottle/new 폼 prefill</div>
+            <div class="task-note">router params 또는 store로 결과 전달 → 폼 초기값 채움</div>
+          </div>
+        </li>
+        <li data-id="1-8">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">로딩 / 실패 / 저신뢰 UX</div>
+            <div class="task-note">OCR 실패 시 "수동 입력으로" fallback, confidence 낮은 필드 하이라이트</div>
+          </div>
+        </li>
+        <li data-id="1-9">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">app.json 카메라 권한 plugin + 문구</div>
+            <div class="task-note">expo-camera plugin, NSCameraUsageDescription 한글 문구</div>
+          </div>
+        </li>
+        <li data-id="1-10">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">BACKEND_ENABLED=false 시 mock 응답으로 화면 단독 검증</div>
+            <div class="task-note">BE 연결 전 카메라→폼 흐름만 먼저 확인</div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- ============ PHASE 2: BE 작업 ============ -->
+      <h2>2. BE 작업 (권한 받은 후) <span class="tag be">BE</span></h2>
+      <p class="phase-desc">feat/inventory-ocr-scan 브랜치에서 작업 → PR</p>
+      <ul class="tasks" data-phase="2">
+        <li data-id="2-1">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">feat/inventory-ocr-scan 브랜치 생성</div>
+          </div>
+        </li>
+        <li data-id="2-2">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">OCR 클라이언트 연동 (Google Vision REST 또는 CLOVA)</div>
+            <div class="task-note">RestClient/WebClient + API 키 yml 주입</div>
+          </div>
+        </li>
+        <li data-id="2-3">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text"><code>/inventory/scan</code> stub → 실제 구현</div>
+            <div class="task-note">multipart 이미지 수신 → OCR 호출 → 원시 텍스트</div>
+          </div>
+        </li>
+        <li data-id="2-4">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">정규식 추출기 (abv / capacityMl)</div>
+            <div class="task-note">"40% vol", "700ml", "0.7L" 패턴</div>
+          </div>
+        </li>
+        <li data-id="2-5">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">LLM 구조화 (name / category) — 선택, 2차</div>
+            <div class="task-note">Claude Haiku에 OCR 텍스트 → JSON. 1차는 생략 가능</div>
+          </div>
+        </li>
+        <li data-id="2-6">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">브랜드 → 카테고리 매핑 사전</div>
+            <div class="task-note">Tanqueray→GIN 등 수십~수백 row</div>
+          </div>
+        </li>
+        <li data-id="2-7">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">응답 스키마 + confidence 반환</div>
+          </div>
+        </li>
+        <li data-id="2-8">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">단위 테스트 (정규식 추출기 위주)</div>
+          </div>
+        </li>
+        <li data-id="2-9">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">PR 생성 → BE 팀 리뷰</div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- ============ PHASE 3: 통합 검증 ============ -->
+      <h2>3. 통합 검증 <span class="tag shared">SPEC</span></h2>
+      <ul class="tasks" data-phase="3">
+        <li data-id="3-1">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">BACKEND_ENABLED=true 토글 후 실제 OCR 연결</div>
+          </div>
+        </li>
+        <li data-id="3-2">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">폰에서 실제 술병 라벨 촬영 테스트 (영문 위스키)</div>
+          </div>
+        </li>
+        <li data-id="3-3">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">폰에서 한글 라벨 테스트 (소주/전통주)</div>
+          </div>
+        </li>
+        <li data-id="3-4">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">도수/용량 정확도 확인 + 카테고리 추론 정확도 확인</div>
+          </div>
+        </li>
+        <li data-id="3-5">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">저조도/곡면/반사 등 악조건 케이스 확인</div>
+          </div>
+        </li>
+        <li data-id="3-6">
+          <input type="checkbox" />
+          <div class="task-body">
+            <div class="task-text">FE develop 푸시 + BE PR 머지</div>
+          </div>
+        </li>
+      </ul>
+
+      <button class="reset-btn" id="reset">체크 전체 초기화</button>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'ocr-scan-checklist-v1';
+      const boxes = Array.from(document.querySelectorAll('input[type=checkbox]'));
+      const lis = Array.from(document.querySelectorAll('ul.tasks li'));
+
+      function load() {
+        let saved = {};
+        try {
+          saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch (e) {
+          saved = {};
+        }
+        lis.forEach((li) => {
+          const id = li.dataset.id;
+          const box = li.querySelector('input');
+          box.checked = !!saved[id];
+          li.classList.toggle('done', box.checked);
+        });
+        updateProgress();
+      }
+
+      function save() {
+        const state = {};
+        lis.forEach((li) => {
+          state[li.dataset.id] = li.querySelector('input').checked;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function updateProgress() {
+        const total = boxes.length;
+        const done = boxes.filter((b) => b.checked).length;
+        const pct = total ? Math.round((done / total) * 100) : 0;
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('progress-text').textContent = done + ' / ' + total + ' (' + pct + '%)';
+      }
+
+      lis.forEach((li) => {
+        const box = li.querySelector('input');
+        box.addEventListener('change', () => {
+          li.classList.toggle('done', box.checked);
+          save();
+          updateProgress();
+        });
+      });
+
+      document.getElementById('reset').addEventListener('click', () => {
+        if (!confirm('체크 전체를 초기화할까요?')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        load();
+      });
+
+      load();
+    </script>
+  </body>
+</html>

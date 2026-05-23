@@ -96,6 +96,7 @@ export default function DebugScreen() {
           status: 'done',
         },
         { label: 'bottle/new (barAdd)', href: '/bottle/new', status: 'done' },
+        { label: 'bottle/scan (라벨 OCR)', href: '/bottle/scan', status: 'new' },
         { label: 'bar/insight', href: '/bar/insight', status: 'done' },
         {
           label: 'recipe/[id] (Detail)',

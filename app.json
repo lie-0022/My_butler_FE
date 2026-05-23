@@ -23,7 +23,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-asset",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "술병 라벨을 촬영해서 제품 정보를 자동으로 채우기 위해 카메라를 사용합니다."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

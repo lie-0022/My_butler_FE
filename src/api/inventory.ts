@@ -7,6 +7,7 @@ import type {
   InventoryInsightsResponse,
   InventoryItemDetailResponse,
   InventoryItemSummary,
+  ScanResultResponse,
   UpdateInventoryItemRequest,
   UpdateLevelRequest,
 } from '../types/inventory';
@@ -76,6 +77,29 @@ export const inventoryApi = {
   /** GET /inventory/insights — 인사이트 화면 (카테고리별 분포, 유통기한 경고) */
   getInsights: async () => {
     const res = await apiClient.get<ApiResponse<InventoryInsightsResponse>>('/inventory/insights');
+    return res.data;
+  },
+
+  /**
+   * POST /inventory/scan — 라벨 OCR 스캔.
+   * 이미지 파일을 multipart로 업로드 → BE가 OCR + 구조화 → 추출 결과 반환.
+   * FormData는 client.ts의 snake_case 변환 인터셉터를 통과하므로 그대로 전송됨.
+   *
+   * @param imageUri expo-camera/image-manipulator가 만든 로컬 파일 URI
+   */
+  scan: async (imageUri: string) => {
+    const form = new FormData();
+    // RN FormData 파일 형식: { uri, name, type }
+    form.append('image', {
+      uri: imageUri,
+      name: 'label.jpg',
+      type: 'image/jpeg',
+    } as unknown as Blob);
+
+    const res = await apiClient.post<ApiResponse<ScanResultResponse>>('/inventory/scan', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000, // OCR + LLM 처리 시간 고려해 넉넉히
+    });
     return res.data;
   },
 };
