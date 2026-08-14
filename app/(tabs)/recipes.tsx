@@ -66,7 +66,9 @@ export default function RecipesTabScreen() {
     try {
       if (activeFilter?.params) {
         // 필터 적용: /recipes 검색 호출
-        const res = await recipeApi.search({ ...activeFilter.params, size: 20 });
+        // keyword: '' 명시 — BE의 :keyword IS NULL 분기가 PostgreSQL JDBC null bytea 추론 버그를
+        // 일으키므로 빈 문자열을 보내 LIKE '%%' 매칭(=모든 행)으로 우회.
+        const res = await recipeApi.search({ ...activeFilter.params, keyword: '', size: 20 });
         setSearchResults(res.data.content);
       } else {
         // All: home 묶음 호출
@@ -97,10 +99,15 @@ export default function RecipesTabScreen() {
 
   // 필터 적용 중: tonight hero는 숨김 + 검색 결과 리스트만 표시.
   // 필터 없음: home의 preference + availableRecipes 사용.
+  // hero: "지금 만들 수 있어요" 1번 우선 (인벤토리 매칭 결과 강조).
+  // available 비어있을 때만 취향 추천 fallback.
   const tonight: RecipeSummary | undefined = searchResults
     ? undefined
-    : home?.preferenceRecommendations?.[0] ?? home?.availableRecipes?.[0];
+    : home?.availableRecipes?.[0] ?? home?.preferenceRecommendations?.[0];
   const makeable: RecipeSummary[] = searchResults ?? home?.availableRecipes ?? [];
+  // "거의 다 있어요" — 필터 없을 때만 노출 (검색 결과 모드에서는 숨김).
+  // BE: missingCount in 1..2 인 레시피만 들어옴. 탭하면 부족 재료 화면(/missing)으로 바로 이동.
+  const nearly: RecipeSummary[] = searchResults ? [] : (home?.nearlyAvailableRecipes ?? []);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]} testID="tab-recipes-screen">
@@ -179,10 +186,12 @@ export default function RecipesTabScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <Eyebrow>NOW MAKEABLE</Eyebrow>
-            <Text style={styles.sectionTitle}>지금 바로 만들 수 있어요</Text>
+            <Eyebrow>{searchResults ? 'FILTERED' : 'NOW MAKEABLE'}</Eyebrow>
+            <Text style={styles.sectionTitle}>
+              {searchResults ? `${filter} 레시피` : '지금 바로 만들 수 있어요'}
+            </Text>
           </View>
-          <Text style={styles.sectionMore}>더보기 →</Text>
+          {searchResults ? null : <Text style={styles.sectionMore}>더보기 →</Text>}
         </View>
 
         {loading ? (
@@ -225,6 +234,51 @@ export default function RecipesTabScreen() {
             ))}
           </View>
         )}
+
+        {/* "거의 다 있어요" — 부족 재료 1~2개인 레시피. All 필터일 때만 표시. */}
+        {nearly.length > 0 ? (
+          <>
+            <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
+              <View>
+                <Eyebrow>ALMOST THERE</Eyebrow>
+                <Text style={styles.sectionTitle}>거의 다 있어요</Text>
+              </View>
+              <Text style={styles.sectionMore}>1~2개만 더!</Text>
+            </View>
+            <View style={styles.list}>
+              {nearly.map((r) => (
+                <Pressable
+                  key={`nearly-${r.id}`}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/recipe/[id]/missing',
+                      params: { id: String(r.id) },
+                    })
+                  }
+                  testID={`recipes-nearly-card-${r.id}`}
+                  style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                >
+                  <View style={styles.cardThumb}>
+                    <CocktailGlass style="rocks" tone={baseSpiritToTone(r.baseSpirit)} size="sm" />
+                  </View>
+                  <View style={styles.cardMeta}>
+                    <Text style={styles.cardTag}>{r.tasteTags[0] ?? 'COCKTAIL'}</Text>
+                    <Text style={styles.cardName} numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                    <Text style={styles.cardSub}>
+                      {r.abv != null ? `${r.abv}% ABV` : ''}
+                      {r.estimatedMinutes ? ` · ${r.estimatedMinutes} min` : ''}
+                    </Text>
+                  </View>
+                  <View style={styles.cardArrow}>
+                    <Text style={styles.cardArrowText}>→</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -317,6 +371,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[5],
     paddingTop: spacing[2],
     paddingBottom: spacing[1],
+  },
+  sectionHeaderSpaced: {
+    marginTop: spacing[5],
   },
   sectionTitle: {
     fontFamily: fontFamily.serif.bold,

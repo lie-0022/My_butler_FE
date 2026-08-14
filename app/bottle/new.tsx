@@ -91,7 +91,7 @@ export default function BottleNewScreen() {
 
   const handleSubmit = async () => {
     if (!BACKEND_ENABLED) {
-      router.back();
+      router.dismissAll();
       return;
     }
     if (!name.trim()) return;
@@ -112,7 +112,9 @@ export default function BottleNewScreen() {
         purchasePlace: trim(purchasePlace),
         origin: trim(origin),
       });
-      router.back();
+      // 스택 다 빼고 (tabs) 홈으로 복귀.
+      // 라벨 스캔 경로(홈 → new → scan → new replace)에서 이전 new가 스택에 남는 케이스 대응.
+      router.dismissAll();
     } catch (err) {
       Alert.alert('등록 실패', parseApiError(err).message);
     } finally {

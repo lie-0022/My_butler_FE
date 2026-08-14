@@ -36,7 +36,8 @@ export default function LoginEmailScreen() {
     formState: { errors },
   } = useForm<LoginEmailForm>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    // 시연 영상 촬영용 — 데모 계정 미리 채움. 실배포 전 빈 문자열로 되돌릴 것.
+    defaultValues: { email: 'demo@mybutler.com', password: 'Demo1234!' },
     mode: 'onBlur',
   });
 

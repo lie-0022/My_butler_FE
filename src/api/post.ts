@@ -17,10 +17,16 @@ interface FeedParams {
 }
 
 export const postApi = {
-  /** GET /posts — 피드 (페이지네이션) */
+  /** GET /posts — 피드 (페이지네이션)
+   * NOTE: BE Controller의 @RequestParam("sort")와 Spring Pageable의 sort 파라미터가 충돌해서
+   * sort=LATEST/POPULAR 보내면 ORDER BY p.LATEST asc로 잘못 해석돼 500. 우회로 sort는 제거하고
+   * BE default(LATEST)만 사용. 정렬 분기는 BE 수정 후 복구.
+   */
   getFeed: async (params?: FeedParams) => {
+    const { sort: _ignored, ...rest } = params ?? {};
+    void _ignored;
     const res = await apiClient.get<ApiResponse<PageResponse<PostSummaryResponse>>>('/posts', {
-      params,
+      params: rest,
     });
     return res.data;
   },

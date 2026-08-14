@@ -201,9 +201,9 @@ export default function RecipeDetailScreen() {
           <CTA
             variant="amber"
             onPress={() => router.back()}
-            testID="recipe-detail-made-button"
+            testID="recipe-detail-start-button"
           >
-            만들기 완료
+            만들기 시작
           </CTA>
         </View>
       </View>

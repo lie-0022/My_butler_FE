@@ -98,7 +98,7 @@ export const inventoryApi = {
 
     const res = await apiClient.post<ApiResponse<ScanResultResponse>>('/inventory/scan', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 30000, // OCR + LLM 처리 시간 고려해 넉넉히
+      timeout: 60000, // OCR + Vision API 왕복 고려해 60초로 넉넉히
     });
     return res.data;
   },
