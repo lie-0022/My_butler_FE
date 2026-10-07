@@ -21,8 +21,8 @@ import { BACKEND_ENABLED } from '@/utils/backend';
 import type { PostSortKey, PostSummaryResponse } from '@/types/post';
 
 const FILTERS: { label: string; sort: PostSortKey }[] = [
-  { label: 'All', sort: 'LATEST' },
-  { label: '인기', sort: 'POPULAR' },
+  { label: '최신순', sort: 'LATEST' },
+  { label: '인기순', sort: 'POPULAR' },
 ];
 
 /** username 첫 글자 hash → 아바타 그라데이션 톤 결정 (시각적 다양성용) */
@@ -62,8 +62,15 @@ export default function FeedTabScreen() {
   const fetchFeed = useCallback(async () => {
     if (!BACKEND_ENABLED) return;
     try {
+      // BE sort 파라미터는 Pageable 충돌로 우회 중(post.ts) — 항상 최신순으로 받음.
+      // 인기순은 클라이언트에서 likeCount desc로 정렬.
       const res = await postApi.getFeed({ sort: filter, page: 0, size: 20 });
-      setPosts(res.data.content);
+      const list = res.data.content;
+      const sorted =
+        filter === 'POPULAR'
+          ? [...list].sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0))
+          : list;
+      setPosts(sorted);
     } catch {
       /* noop */
     }

@@ -135,7 +135,7 @@ export default function BarHomeScreen() {
 
           {/* Shelf — 미니 병들 */}
           <View style={styles.shelfRow}>
-            {items.slice(0, 5).map((b) => (
+            {items.map((b) => (
               <View key={b.id} style={styles.shelfBottle}>
                 <Bottle
                   tone={CATEGORY_TO_BOTTLE_TONE[b.category]}
